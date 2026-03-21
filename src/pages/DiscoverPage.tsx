@@ -83,13 +83,8 @@ const DiscoverPage = () => {
     setIsLoading(false);
   }, []);
 
-  const filteredChannels = channels.filter(ch =>
-    ch.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    ch.description.toLowerCase().includes(searchQuery.toLowerCase())
-  );
-
   // 按订阅人数排序
-  const sortedChannels = [...filteredChannels].sort((a, b) => b.subscriberCount - a.subscriberCount);
+  const sortedChannels = [...channels].sort((a, b) => b.subscriberCount - a.subscriberCount);
 
   return (
     <MobileLayout>
@@ -98,55 +93,26 @@ const DiscoverPage = () => {
         <div className="sticky top-0 bg-background/95 backdrop-blur-sm z-30 safe-area-inset-top">
           <div className="px-4 pt-4 pb-3">
             <h1 className="text-2xl font-bold text-foreground mb-4">发现</h1>
-            
-            {/* 搜索栏 */}
-            <SearchBar
-              value={searchQuery}
-              onChange={setSearchQuery}
-              placeholder="搜索频道、博主..."
-            />
-          </div>
 
-          {/* 分类 Tab */}
-          <CategoryTabs
-            categories={categories}
-            activeCategory={activeCategory}
-            onCategoryChange={setActiveCategory}
-          />
+            {/* 添加信息源入口 */}
+            <motion.button
+              onClick={() => navigate('/add-source')}
+              className="w-full flex items-center gap-4 p-4 rounded-2xl bg-gradient-to-r from-primary/10 via-accent/5 to-primary/10 border border-primary/20"
+              whileTap={{ scale: 0.98 }}
+            >
+              <div className="w-10 h-10 rounded-xl bg-primary/20 flex items-center justify-center shrink-0">
+                <Plus className="w-5 h-5 text-primary" />
+              </div>
+              <div className="flex-1 text-left">
+                <h3 className="font-semibold text-foreground text-sm">添加自定义信息源</h3>
+                <p className="text-xs text-muted-foreground mt-0.5">粘贴链接，自动识别平台类型</p>
+              </div>
+              <ChevronRight className="w-5 h-5 text-muted-foreground" />
+            </motion.button>
+          </div>
         </div>
 
-        {/* 提示 Banner */}
-        <AnimatePresence>
-          {showBanner && (
-            <motion.div
-              className="mx-4 mb-3 p-4 rounded-xl bg-gradient-to-r from-primary/10 via-accent/10 to-primary/10 border border-primary/20 relative overflow-hidden"
-              initial={{ opacity: 0, y: -10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, height: 0, marginBottom: 0, padding: 0 }}
-            >
-              {/* 装饰 */}
-              <div className="absolute -right-4 -top-4 w-20 h-20 rounded-full bg-primary/10 blur-2xl" />
-              
-              <div className="flex items-center gap-3 relative">
-                <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center shrink-0">
-                  <Sparkles className="w-5 h-5 text-primary" />
-                </div>
-                <p className="text-sm text-foreground font-medium">
-                  不知道从哪开始？我们为你精选了主题包
-                </p>
-                <motion.button
-                  className="ml-auto w-6 h-6 rounded-full bg-secondary/80 flex items-center justify-center shrink-0"
-                  whileTap={{ scale: 0.9 }}
-                  onClick={() => setShowBanner(false)}
-                >
-                  <X className="w-3.5 h-3.5 text-muted-foreground" />
-                </motion.button>
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
-
-        {/* 飙升榜标题 */}
+        {/* 主题包标题 */}
         <div className="px-4 py-3 flex items-center gap-2">
           <div className="flex items-center gap-1.5">
             <Flame className="w-5 h-5 text-accent" />

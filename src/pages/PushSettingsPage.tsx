@@ -251,7 +251,7 @@ const PushSettingsPage = () => {
             <Clock className="w-4 h-4 text-primary" />
             推送时间
           </label>
-          <div className="flex items-center justify-center gap-2 py-2">
+          <div className="flex items-center justify-center gap-4 py-2">
             <ScrollColumn items={hours} selectedIndex={selectedHour} onChange={setSelectedHour} />
             <span className="text-3xl font-bold text-foreground pb-1">:</span>
             <ScrollColumn items={minutes} selectedIndex={selectedMinute} onChange={setSelectedMinute} />

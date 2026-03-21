@@ -10,7 +10,22 @@
       "Bash(git remote:*)",
       "Bash(git push:*)",
       "Skill(update-config)",
-      "Skill(update-config:*)"
+      "Skill(update-config:*)",
+      "Bash(jq -e '.hooks.PostToolUse[] | select\\(.matcher == \"\"Edit|Write\"\"\\) | .hooks[] | select\\(.type == \"\"command\"\"\\) | .command' /Users/apple/Downloads/glide-fast-express-main/.claude/settings.local.json)"
+    ]
+  },
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "cd /Users/apple/Downloads/glide-fast-express-main && git add -A && git commit -m \"auto: claude edit $(date +'%Y-%m-%d %H:%M')\" && git push origin master 2>/dev/null || true",
+            "statusMessage": "推送到 GitHub..."
+          }
+        ]
+      }
     ]
   }
 }

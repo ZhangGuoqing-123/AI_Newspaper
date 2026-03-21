@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { motion, AnimatePresence, useMotionValue, animate, PanInfo } from 'framer-motion';
-import { Plus, Bell, BellOff, Trash2, FolderOpen, User, ChevronRight } from 'lucide-react';
+import { Bell, BellOff, Trash2, FolderOpen, User, ChevronRight } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import MobileLayout from '@/components/layout/MobileLayout';
 import { mockChannels } from '@/data/mockData';

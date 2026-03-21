@@ -48,7 +48,7 @@ const ScrollColumn = ({ items, selectedIndex, onChange }: ScrollColumnProps) => 
   return (
     <div
       className="relative overflow-hidden select-none cursor-grab active:cursor-grabbing"
-      style={{ height: ITEM_HEIGHT * VISIBLE_ITEMS, width: 72 }}
+      style={{ height: ITEM_HEIGHT * VISIBLE_ITEMS, width: 88 }}
       onTouchStart={(e) => { dragStartY.current = e.touches[0].clientY; setDragging(true); }}
       onTouchMove={(e) => {
         const delta = e.touches[0].clientY - dragStartY.current;

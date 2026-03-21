@@ -1,0 +1,234 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* 硅谷速递 - Silicon Valley Express Design System */
+/* 灵感: 今日头条信息流 + 抖音流畅交互 + 即刻卡片设计 */
+
+@layer base {
+  :root {
+    /* 基础色调 - 干净现代的浅色主题 */
+    --background: 0 0% 98%;
+    --foreground: 220 20% 10%;
+
+    /* 卡片 - 纯白带微妙阴影 */
+    --card: 0 0% 100%;
+    --card-foreground: 220 20% 10%;
+
+    /* 弹窗 */
+    --popover: 0 0% 100%;
+    --popover-foreground: 220 20% 10%;
+
+    /* 主品牌色 - 科技蓝 */
+    --primary: 217 91% 60%;
+    --primary-foreground: 0 0% 100%;
+
+    /* 次要色 - 柔和灰蓝 */
+    --secondary: 220 14% 96%;
+    --secondary-foreground: 220 20% 25%;
+
+    /* 静音色 */
+    --muted: 220 14% 96%;
+    --muted-foreground: 220 10% 50%;
+
+    /* 强调色 - 活力橙 */
+    --accent: 24 95% 53%;
+    --accent-foreground: 0 0% 100%;
+
+    /* 危险色 */
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+
+    /* 成功色 */
+    --success: 142 76% 36%;
+    --success-foreground: 0 0% 100%;
+
+    /* 金色渐变 - VIP */
+    --gold-from: 45 93% 47%;
+    --gold-to: 24 95% 53%;
+
+    /* 深色背景 */
+    --dark-bg: 220 20% 12%;
+    --dark-bg-end: 220 25% 8%;
+
+    /* 边框和输入 */
+    --border: 220 13% 91%;
+    --input: 220 13% 91%;
+    --ring: 217 91% 60%;
+
+    --radius: 1rem;
+
+    /* 渐变 */
+    --gradient-brand: linear-gradient(135deg, hsl(217 91% 60%) 0%, hsl(238 84% 67%) 100%);
+    --gradient-gold: linear-gradient(135deg, hsl(45 93% 47%) 0%, hsl(24 95% 53%) 100%);
+    --gradient-dark: linear-gradient(180deg, hsl(220 20% 12%) 0%, hsl(220 20% 8%) 100%);
+    
+    /* 阴影 */
+    --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+    --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+    --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+    --shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
+    --shadow-card: 0 2px 8px -2px rgb(0 0 0 / 0.08), 0 4px 16px -4px rgb(0 0 0 / 0.12);
+
+    /* 侧边栏 */
+    --sidebar-background: 0 0% 98%;
+    --sidebar-foreground: 220 20% 25%;
+    --sidebar-primary: 217 91% 60%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 220 14% 96%;
+    --sidebar-accent-foreground: 220 20% 25%;
+    --sidebar-border: 220 13% 91%;
+    --sidebar-ring: 217 91% 60%;
+  }
+
+  .dark {
+    --background: 220 20% 6%;
+    --foreground: 220 14% 96%;
+
+    --card: 220 20% 10%;
+    --card-foreground: 220 14% 96%;
+
+    --popover: 220 20% 10%;
+    --popover-foreground: 220 14% 96%;
+
+    --primary: 217 91% 60%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 220 20% 16%;
+    --secondary-foreground: 220 14% 90%;
+
+    --muted: 220 20% 16%;
+    --muted-foreground: 220 14% 60%;
+
+    --accent: 24 95% 53%;
+    --accent-foreground: 0 0% 100%;
+
+    --destructive: 0 62% 50%;
+    --destructive-foreground: 0 0% 100%;
+
+    --success: 142 76% 42%;
+    --success-foreground: 0 0% 100%;
+
+    --border: 220 20% 18%;
+    --input: 220 20% 18%;
+    --ring: 217 91% 60%;
+
+    --sidebar-background: 220 20% 8%;
+    --sidebar-foreground: 220 14% 90%;
+    --sidebar-primary: 217 91% 60%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 220 20% 14%;
+    --sidebar-accent-foreground: 220 14% 90%;
+    --sidebar-border: 220 20% 18%;
+    --sidebar-ring: 217 91% 60%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  html {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+  }
+}
+
+@layer utilities {
+  /* 卡片悬浮效果 */
+  .card-hover {
+    @apply transition-all duration-300 ease-out;
+  }
+  .card-hover:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-lg);
+  }
+
+  /* 玻璃态效果 */
+  .glass {
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    background: rgba(255, 255, 255, 0.8);
+  }
+
+  .dark .glass {
+    background: rgba(20, 20, 30, 0.8);
+  }
+
+  /* 渐变文字 */
+  .gradient-text {
+    background: var(--gradient-brand);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  /* 安全区域适配 */
+  .safe-area-inset-bottom {
+    padding-bottom: env(safe-area-inset-bottom, 0);
+  }
+
+  .safe-area-inset-top {
+    padding-top: env(safe-area-inset-top, 0);
+  }
+
+  /* 隐藏滚动条但保持功能 */
+  .hide-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .hide-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+
+  /* 触摸反馈 */
+  .touch-feedback {
+    @apply active:scale-[0.98] transition-transform duration-100;
+  }
+
+  /* 脉冲动画 */
+  .pulse-ring {
+    animation: pulse-ring 1.5s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  }
+
+  @keyframes pulse-ring {
+    0%, 100% {
+      opacity: 1;
+    }
+    50% {
+      opacity: 0.5;
+    }
+  }
+
+  /* 音波动画 */
+  .audio-wave {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+  }
+
+  .audio-wave span {
+    display: block;
+    width: 3px;
+    background: currentColor;
+    border-radius: 3px;
+    animation: audio-wave 1s ease-in-out infinite;
+  }
+
+  .audio-wave span:nth-child(1) { animation-delay: 0s; height: 8px; }
+  .audio-wave span:nth-child(2) { animation-delay: 0.1s; height: 16px; }
+  .audio-wave span:nth-child(3) { animation-delay: 0.2s; height: 12px; }
+  .audio-wave span:nth-child(4) { animation-delay: 0.3s; height: 20px; }
+  .audio-wave span:nth-child(5) { animation-delay: 0.4s; height: 10px; }
+
+  @keyframes audio-wave {
+    0%, 100% { transform: scaleY(1); }
+    50% { transform: scaleY(0.5); }
+  }
+}

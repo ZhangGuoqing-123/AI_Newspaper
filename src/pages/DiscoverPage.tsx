@@ -1,9 +1,8 @@
 import { useState, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { TrendingUp, Plus, Check, Flame, Sparkles, X } from 'lucide-react';
+import { TrendingUp, Plus, Check, Flame, ChevronRight } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import MobileLayout from '@/components/layout/MobileLayout';
-import SearchBar from '@/components/common/SearchBar';
-import CategoryTabs from '@/components/common/CategoryTabs';
 import PullToRefresh from '@/components/common/PullToRefresh';
 import ChannelDetailModal from '@/components/discover/ChannelDetailModal';
 import { ChannelCardSkeleton } from '@/components/ui/skeleton-card';
@@ -11,14 +10,10 @@ import { mockChannels } from '@/data/mockData';
 import { Channel } from '@/types';
 import { useToast } from '@/hooks/use-toast';
 
-const categories = ['全部', '大模型', 'AI产品', '投融资', '开源&研究'];
-
 const DiscoverPage = () => {
-  const [searchQuery, setSearchQuery] = useState('');
+  const navigate = useNavigate();
   const [channels, setChannels] = useState<Channel[]>(mockChannels);
-  const [activeCategory, setActiveCategory] = useState('全部');
   const [isLoading, setIsLoading] = useState(false);
-  const [showBanner, setShowBanner] = useState(true);
   const [selectedChannel, setSelectedChannel] = useState<Channel | null>(null);
   const { toast } = useToast();
 

@@ -143,49 +143,25 @@ const FollowingPage = () => {
       </div>
 
       <div className="px-4 pb-8">
-        {/* 操作入口区 */}
-        <div className="flex flex-col gap-2 mb-6">
-          {/* 添加信息源 */}
-          <motion.button
-            onClick={() => navigate('/add-source')}
-            className="w-full flex items-center gap-4 p-4 rounded-2xl bg-gradient-to-r from-primary/10 via-accent/5 to-primary/10 border border-primary/20"
-            whileTap={{ scale: 0.98 }}
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-          >
-            <div className="w-12 h-12 rounded-xl bg-primary/20 flex items-center justify-center">
-              <Plus className="w-6 h-6 text-primary" />
-            </div>
-            <div className="flex-1 text-left">
-              <h3 className="font-semibold text-foreground">添加新信息源</h3>
-              <p className="text-xs text-muted-foreground mt-0.5">
-                支持 Twitter、RSS、Newsletter
-              </p>
-            </div>
-            <ChevronRight className="w-5 h-5 text-muted-foreground" />
-          </motion.button>
-
-          {/* 推送设置 */}
-          <motion.button
-            onClick={() => navigate('/settings/push')}
-            className="w-full flex items-center gap-4 p-4 rounded-2xl bg-card border border-border"
-            whileTap={{ scale: 0.98 }}
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.05 }}
-          >
-            <div className="w-12 h-12 rounded-xl bg-secondary flex items-center justify-center">
-              <Bell className="w-6 h-6 text-primary" />
-            </div>
-            <div className="flex-1 text-left">
-              <h3 className="font-semibold text-foreground">推送设置</h3>
-              <p className="text-xs text-muted-foreground mt-0.5">
-                未配置 · 设置后每天自动发送日报
-              </p>
-            </div>
-            <ChevronRight className="w-5 h-5 text-muted-foreground" />
-          </motion.button>
-        </div>
+        {/* 推送设置入口 */}
+        <motion.button
+          onClick={() => navigate('/settings/push')}
+          className="w-full flex items-center gap-4 p-4 mb-6 rounded-2xl bg-card border border-border"
+          whileTap={{ scale: 0.98 }}
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+        >
+          <div className="w-12 h-12 rounded-xl bg-secondary flex items-center justify-center">
+            <Bell className="w-6 h-6 text-primary" />
+          </div>
+          <div className="flex-1 text-left">
+            <h3 className="font-semibold text-foreground">推送设置</h3>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              未配置 · 设置后每天自动发送日报
+            </p>
+          </div>
+          <ChevronRight className="w-5 h-5 text-muted-foreground" />
+        </motion.button>
 
         {/* 已关注的信息集合 */}
         <div className="mb-6">

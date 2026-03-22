@@ -204,20 +204,6 @@ const HomePage = () => {
               </p>
             </div>
 
-            {/* Hero CTA */}
-            {!isSubscribed && (
-              <motion.button
-                className="w-full mt-6 py-4 rounded-2xl bg-primary text-primary-foreground font-bold text-base flex items-center justify-center gap-2 shadow-lg shadow-primary/25"
-                whileTap={{ scale: 0.98 }}
-                onClick={() => navigate('/discover')}
-              >
-                免费试用 7 天
-                <ChevronRight className="w-5 h-5" />
-              </motion.button>
-            )}
-            {!isSubscribed && (
-              <p className="text-xs text-muted-foreground text-center mt-2">之后 ¥19/月 · 随时取消</p>
-            )}
           </motion.div>
 
           {/* ── 产品样例 ── */}

@@ -33,7 +33,7 @@ const freeFeatures = [
 const proFeatures = [
   { icon: Zap, label: '关注 100 个信息源' },
   { icon: Star, label: 'AI 智能分析总结' },
-  { icon: Clock, label: '优先推送' },
+  { icon: Clock, label: '多次推送' },
   { icon: Shield, label: '专属客服' },
 ];
 

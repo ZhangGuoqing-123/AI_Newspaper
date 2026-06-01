@@ -12,18 +12,16 @@ const DateSelector = ({ selectedDate, onDateChange }: DateSelectorProps) => {
   const scrollRef = useRef<HTMLDivElement>(null);
   const [dates] = useState(() => {
     const result = [];
-    for (let i = 0; i < 14; i++) {
+    for (let i = 6; i >= 0; i--) {
       result.push(subDays(new Date(), i));
     }
     return result;
   });
 
   useEffect(() => {
-    // 初始化时滚动到选中日期
+    // 初始化时滚动到最右边（今天）
     if (scrollRef.current) {
-      const selectedIndex = dates.findIndex(d => isSameDay(d, selectedDate));
-      const scrollPosition = selectedIndex * 64 - 16;
-      scrollRef.current.scrollTo({ left: scrollPosition, behavior: 'smooth' });
+      scrollRef.current.scrollLeft = scrollRef.current.scrollWidth;
     }
   }, []);
 
@@ -38,9 +36,9 @@ const DateSelector = ({ selectedDate, onDateChange }: DateSelectorProps) => {
   };
 
   return (
-    <div 
+    <div
       ref={scrollRef}
-      className="flex gap-2 overflow-x-auto hide-scrollbar px-4 py-2"
+      className="flex gap-1 w-full"
     >
       {dates.map((date, index) => {
         const isSelected = isSameDay(date, selectedDate);
@@ -51,21 +49,21 @@ const DateSelector = ({ selectedDate, onDateChange }: DateSelectorProps) => {
           <motion.button
             key={date.toISOString()}
             onClick={() => onDateChange(date)}
-            className={`relative flex flex-col items-center min-w-[56px] py-2 px-3 rounded-xl transition-colors touch-feedback ${
-              isSelected 
-                ? 'bg-primary text-primary-foreground' 
-                : 'bg-secondary hover:bg-secondary/80 text-foreground'
+            className={`flex-1 flex flex-col items-center py-1 px-1 rounded-lg transition-all touch-feedback ${
+              isSelected
+                ? 'bg-blue-50 border border-[#1456F0]'
+                : 'border border-transparent'
             }`}
             whileTap={{ scale: 0.95 }}
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: index * 0.03 }}
           >
-            <span className={`text-xs ${isSelected ? 'opacity-80' : 'text-muted-foreground'}`}>
-              {weekDay}
-            </span>
-            <span className="text-lg font-semibold">
+            <span className={`text-sm ${isSelected ? 'font-bold text-[#1456F0]' : 'font-normal text-slate-400'}`}>
               {dateLabel}
+            </span>
+            <span className={`text-[10px] ${isSelected ? 'text-[#1456F0] font-medium' : 'text-slate-400'}`}>
+              {weekDay}
             </span>
           </motion.button>
         );

@@ -8,7 +8,7 @@
 解析 txt → 预过滤+DeepSeek选题（碰撞①）→ Kimi摘要+口播稿
         → DeepSeek质检，不达标自动重做（自检闭环 = agent）
         → edge-tts 出音频（故事级缓存 = 碰撞②）
-        → [下一步] DreamAPI 生封面图 + 数字人口播视频
+        → [--media] DreamAPI 生封面图 + 数字人口播视频（已接入，待补 DreamAPI 字段）
 ```
 
 ## 模型分工（按任务选最优）
@@ -42,12 +42,15 @@ python run.py "C:\...\tweets_original\2026-04-14.txt"   # 跑一天的日报
 | `summarize.py` | Kimi 摘要 + 口播稿 | 需 key |
 | `judge.py` | DeepSeek 质检（自检闭环）| 需 key |
 | `tts.py` | edge-tts 音频 + 故事级缓存（碰撞②）| 免费免 key |
-| `run.py` | 编排主程序（agent 本体）| 需 key |
-| `generate_media.py` | DreamAPI 生图/数字人视频 | ⚠️ 接口字段待对照 DreamAPI 文档补准 |
+| `run.py` | 编排主程序（agent 本体）| 需 key；已支持 `--media` 接多模态 |
+| `generate_media.py` | DreamAPI 生图/数字人视频 | ✅ 已接进 `run.py`；⚠️ DreamAPI 的 endpoint/字段仍是 TODO，待对照文档补准 |
+
+> 多模态：`python run.py "某天.txt" --media`。封面 prompt 由日报自动提炼（`summarize.to_cover_prompt`，英文、无文字）；
+> 数字人视频需在 `.env` 配 `AVATAR_IMAGE`（自有/已授权形象图）。未配真实 DreamAPI key/域名时该步自动跳过，不影响日报+音频产出。
 
 ## 待办
 
-- [ ] `generate_media.py` 对照 DreamAPI 文档补准 endpoint/字段，接进 `run.py`
+- [ ] 拿到 DreamAPI 文档后，补准 `generate_media.py` 里标 TODO 的 endpoint 路径与请求/响应字段（建任务、轮询、取结果 URL、LipSync 上传）
 - [ ] 准备一张有使用权的数字人形象图（肖像权/合规）
 - [ ] 跑出真实指标填进讲法文档：过滤比、单条成本、缓存命中率等
 - [ ] 生产级 TTS 想更自然可换 MiniMax / 火山

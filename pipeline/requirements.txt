@@ -2,3 +2,7 @@ openai>=1.40
 python-dotenv>=1.0
 edge-tts>=6.1
 requests>=2.31
+# 小硅口播视频（屏幕脸 + 声波驱动）
+Pillow>=10.0
+numpy>=1.24
+imageio-ffmpeg>=0.5   # 自带 ffmpeg 二进制，解码音频 + 合成 MP4，无需系统装 ffmpeg

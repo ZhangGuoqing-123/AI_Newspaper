@@ -36,6 +36,24 @@ def make_digest(tweets: list[Tweet]) -> str:
                 max_tokens=4000, temperature=0.4)
 
 
+def to_cover_prompt(digest: str) -> str:
+    """从日报提炼一句【封面图】英文生成 prompt（喂给 Nano Banana 等文生图模型）。
+
+    用英文是因为多数文生图模型对英文 prompt 更敏感；只描述画面、不含文字，
+    避免模型在图上渲染乱码标题。返回的是一行纯 prompt。
+    """
+    system = "You turn a Chinese AI-news digest into ONE concise English image-generation prompt."
+    user = (
+        "Read this Chinese AI daily digest and write ONE image prompt (English, <60 words) "
+        "for its cover. Requirements:\n"
+        "- Capture the single biggest theme of the day as a clean editorial tech illustration\n"
+        "- Modern, minimal, magazine-cover feel; no text/letters/words in the image\n"
+        "- Output ONLY the prompt, no quotes, no explanation\n\n"
+        f"Digest:\n{digest}"
+    )
+    return chat(kimi(), system=system, user=user, max_tokens=200, temperature=0.6).strip()
+
+
 def to_script(digest: str) -> str:
     """把日报改写成数字人/TTS 口播稿。"""
     system = "你是把书面日报改写成口播稿的编辑。"

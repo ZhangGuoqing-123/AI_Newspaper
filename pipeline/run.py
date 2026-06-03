@@ -11,9 +11,10 @@
     python run.py --crawl                       # 现爬 accounts.json 的账号(最近1天)→日报→口播→音频
     python run.py "路径/2026-04-14.txt"          # 用已有的某天 txt 跑（不爬）
     python run.py "路径/xxx.txt" --voice zh-CN-YunxiNeural --no-prefilter
-    python run.py "路径/xxx.txt" --media         # 额外出小硅口播视频（屏幕脸+声波驱动，本地免费）
-    python run.py "路径/xxx.txt" --images        # 额外用 SiliconFlow 生成日报封面图（需配 SILICONFLOW_API_KEY）
-    python run.py "路径/xxx.txt" --media --images  # 全套：音频 + 视频 + 封面图
+    python run.py "路径/xxx.txt" --media         # 额外出小硅口播视频（正方形，屏幕脸+声波驱动）
+    python run.py "路径/xxx.txt" --board         # 宽屏视频：左侧机器人口播 + 右侧小黑板要点
+    python run.py "路径/xxx.txt" --images        # 额外用 SiliconFlow 生成日报封面图
+    python run.py "路径/xxx.txt" --board --images  # 全套：宽屏黑板视频 + 封面图
 """
 from __future__ import annotations
 
@@ -30,7 +31,7 @@ except Exception:
 
 from parse_tweets import parse_file   # noqa: E402
 from select import prefilter          # noqa: E402
-from summarize import make_digest, to_script  # noqa: E402
+from summarize import make_digest, to_script, to_bullet_points  # noqa: E402
 from tts import synth                 # noqa: E402
 
 OUT = Path(__file__).parent / "output"
@@ -101,10 +102,10 @@ def _cover_prompt_from_digest(digest: str) -> str:
 
 def run(txt_path: str, voice: str = "zh-CN-XiaoxiaoNeural", use_prefilter: bool = True,
         use_select: bool = True, select_n: int = 10,
-        media: bool = False, images: bool = False,
+        media: bool = False, board: bool = False, images: bool = False,
         avatar: str | None = None, max_redo: int = 2) -> dict:
     date = Path(txt_path).stem
-    total = 4 + (1 if media else 0) + (1 if images else 0)
+    total = 4 + (1 if (media or board) else 0) + (1 if images else 0)
 
     tweets = parse_file(txt_path)
     candidates = prefilter(tweets, max_candidates=80) if use_prefilter else tweets
@@ -139,16 +140,22 @@ def run(txt_path: str, voice: str = "zh-CN-XiaoxiaoNeural", use_prefilter: bool 
               "stats": {"raw": len(tweets), "candidates": len(candidates), "fed": len(feed)}}
 
     step = 5
-    if media:
-        from talking_head import render as render_talking
+    if media or board:
+        from talking_head import render as render_talking, render_with_board
         avatar_path = Path(avatar) if avatar else Path(__file__).parent / "avatar.png"
         if not avatar_path.exists():
-            print(f"[{step}/{total}] 数字人：跳过——找不到形象图 {avatar_path}（见 docs/小硅-形象设定.md）")
+            print(f"[{step}/{total}] 数字人：跳过——找不到形象图 {avatar_path}")
         else:
-            print(f"[{step}/{total}] 数字人：小硅屏幕脸 + 声波驱动，合成口播视频 ...")
             video_path = OUT / "video" / f"{date}_小硅.mp4"
             try:
-                render_talking(avatar_path, audio, video_path)
+                if board:
+                    print(f"[{step}/{total}] 宽屏黑板视频：Kimi 提炼要点 + 合成小黑板口播 ...")
+                    bullets = to_bullet_points(digest)
+                    print(f"      要点：{' | '.join(bullets)}")
+                    render_with_board(avatar_path, audio, video_path, bullets, date=date)
+                else:
+                    print(f"[{step}/{total}] 数字人：小硅屏幕脸 + 声波驱动，合成口播视频 ...")
+                    render_talking(avatar_path, audio, video_path)
                 result["video"] = str(video_path)
                 print(f"      视频：{video_path.name}")
             except Exception as e:  # noqa: BLE001
@@ -212,7 +219,8 @@ if __name__ == "__main__":
     ap.add_argument("--no-prefilter", action="store_true", help="不做预过滤，原样喂给 Kimi")
     ap.add_argument("--no-select", action="store_true", help="跳过 DeepSeek 选题 agent，把全部候选直接喂给 Kimi")
     ap.add_argument("--select-n", type=int, default=10, help="DeepSeek 选题 agent 精选条数（默认 10）")
-    ap.add_argument("--media", action="store_true", help="额外生成小硅口播视频（屏幕脸 + 声波驱动，本地免费）")
+    ap.add_argument("--media", action="store_true", help="正方形口播视频（屏幕脸 + 声波驱动，本地免费）")
+    ap.add_argument("--board", action="store_true", help="宽屏黑板视频：左侧机器人口播 + 右侧小黑板要点（需 Kimi key）")
     ap.add_argument("--images", action="store_true", help="额外用 SiliconFlow 生成日报封面图（需配 SILICONFLOW_API_KEY）")
     ap.add_argument("--avatar", default=None, help="形象图路径（默认 pipeline/avatar.png）")
     ap.add_argument("--max-redo", type=int, default=2, help="质检不达标的最大重做次数（自检闭环）")
@@ -232,7 +240,7 @@ if __name__ == "__main__":
     result = run(txt, voice=args.voice,
                  use_prefilter=not args.no_prefilter,
                  use_select=not args.no_select, select_n=args.select_n,
-                 media=args.media, images=args.images,
+                 media=args.media, board=args.board, images=args.images,
                  avatar=args.avatar, max_redo=args.max_redo)
     if args.publish:
         _publish(result)

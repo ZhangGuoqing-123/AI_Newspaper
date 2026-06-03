@@ -60,6 +60,19 @@ def to_cover_prompt(digest: str) -> str:
     return chat(kimi(), system=system, user=user, max_tokens=200, temperature=0.6).strip()
 
 
+def to_bullet_points(digest: str, n: int = 6) -> list[str]:
+    """从日报提炼 n 条简短要点，用于小黑板视频字幕。每条 ≤25 字。"""
+    system = "你是把长文精炼成简短要点的编辑，每条要点直接切入核心，不废话。"
+    user = (
+        f"把下面的 AI 日报精炼成 {n} 条简短要点，每条不超过 25 个字。\n"
+        "要求：直接写内容，不加序号、不加符号、不加解释，每行一条。\n\n"
+        f"日报：\n{digest[:3000]}"
+    )
+    result = chat(kimi(), system=system, user=user, max_tokens=400, temperature=0.3)
+    points = [line.strip("•·-— \t") for line in result.splitlines() if line.strip()]
+    return [p for p in points if len(p) > 2][:n]
+
+
 def to_script(digest: str) -> str:
     """把日报改写成数字人/TTS 口播稿。"""
     system = "你是把书面日报改写成口播稿的编辑。"

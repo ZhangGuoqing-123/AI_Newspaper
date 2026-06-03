@@ -12,6 +12,8 @@
     python run.py "路径/2026-04-14.txt"          # 用已有的某天 txt 跑（不爬）
     python run.py "路径/xxx.txt" --voice zh-CN-YunxiNeural --no-prefilter
     python run.py "路径/xxx.txt" --media         # 额外出小硅口播视频（屏幕脸+声波驱动，本地免费）
+    python run.py "路径/xxx.txt" --images        # 额外用 SiliconFlow 生成日报封面图（需配 SILICONFLOW_API_KEY）
+    python run.py "路径/xxx.txt" --media --images  # 全套：音频 + 视频 + 封面图
 """
 from __future__ import annotations
 
@@ -58,10 +60,28 @@ def _self_check(feed, digest: str, max_redo: int) -> dict:
             "score": verdict.get("score"), "redo": redo, "issues": verdict.get("issues")}
 
 
+def _cover_prompt_from_digest(digest: str) -> str:
+    """从日报正文里提取第一个有实质内容的行作为封面图 prompt。"""
+    for line in digest.splitlines():
+        line = line.strip()
+        # 跳过空行和纯分隔行
+        if not line or set(line) <= set("-=—·"):
+            continue
+        # 去掉行首 emoji（范围 U+1F300-U+1FAFF）和空格，取前 80 字
+        stripped = line.lstrip()
+        # 简单去掉常见 emoji 前缀
+        while stripped and ord(stripped[0]) > 0x2500:
+            stripped = stripped[1:].lstrip()
+        if len(stripped) > 10:
+            return stripped[:80]
+    return "硅谷 AI 日报封面，科技感蓝紫渐变"
+
+
 def run(txt_path: str, voice: str = "zh-CN-XiaoxiaoNeural", use_prefilter: bool = True,
-        media: bool = False, avatar: str | None = None, max_redo: int = 2) -> dict:
+        media: bool = False, images: bool = False,
+        avatar: str | None = None, max_redo: int = 2) -> dict:
     date = Path(txt_path).stem
-    total = 5 if media else 4
+    total = 4 + (1 if media else 0) + (1 if images else 0)
 
     tweets = parse_file(txt_path)
     feed = prefilter(tweets, max_candidates=80) if use_prefilter else tweets
@@ -86,13 +106,14 @@ def run(txt_path: str, voice: str = "zh-CN-XiaoxiaoNeural", use_prefilter: bool 
               "cover": None, "video": None, "quality": quality,
               "stats": {"raw": len(tweets), "fed": len(feed)}}
 
+    step = 5
     if media:
         from talking_head import render as render_talking
         avatar_path = Path(avatar) if avatar else Path(__file__).parent / "avatar.png"
         if not avatar_path.exists():
-            print(f"[5/{total}] 数字人：跳过——找不到形象图 {avatar_path}（见 docs/小硅-形象设定.md）")
+            print(f"[{step}/{total}] 数字人：跳过——找不到形象图 {avatar_path}（见 docs/小硅-形象设定.md）")
         else:
-            print(f"[5/{total}] 数字人：小硅屏幕脸 + 声波驱动，合成口播视频 ...")
+            print(f"[{step}/{total}] 数字人：小硅屏幕脸 + 声波驱动，合成口播视频 ...")
             video_path = OUT / "video" / f"{date}_小硅.mp4"
             try:
                 render_talking(avatar_path, audio, video_path)
@@ -100,16 +121,38 @@ def run(txt_path: str, voice: str = "zh-CN-XiaoxiaoNeural", use_prefilter: bool 
                 print(f"      视频：{video_path.name}")
             except Exception as e:  # noqa: BLE001
                 print(f"      ⚠️ 视频生成失败：{e}")
+        step += 1
+
+    if images:
+        from generate_media import generate_for_run as gen_cover, available as sf_available
+        if not sf_available():
+            print(f"[{step}/{total}] 封面图：跳过——缺 SILICONFLOW_API_KEY（在 pipeline/.env 配置）")
+        else:
+            cover_prompt = _cover_prompt_from_digest(digest)
+            print(f"[{step}/{total}] SiliconFlow 生成封面图：{cover_prompt[:50]}…")
+            media_result = gen_cover(cover_prompt)
+            if media_result["cover"]:
+                result["cover"] = media_result["cover"]
+                print(f"      封面图：{Path(media_result['cover']).name}")
+            for err in media_result["errors"]:
+                print(f"      ⚠️ {err}")
 
     (OUT / f"{date}.json").write_text(json.dumps(result, ensure_ascii=False, indent=2), encoding="utf-8")
     produced = f"output/{date}_digest.txt（日报）、{date}_script.txt（口播稿）、{audio.name}（音频）"
     if result.get("video"):
         produced += "、小硅口播视频"
+    if result.get("cover"):
+        produced += f"、封面图({Path(result['cover']).name})"
     if not quality.get("skipped"):
         produced += f"（质检 {quality.get('score')} 分，重做 {quality.get('redo')} 次）"
     print(f"[完成] {produced}")
+    hints = []
     if not media:
-        print("       想出小硅口播视频：加 --media（用 pipeline/avatar.png 屏幕脸 + 声波驱动，本地免费）")
+        hints.append("--media（小硅口播视频，本地免费）")
+    if not images:
+        hints.append("--images（SiliconFlow 封面图，需配 key）")
+    if hints:
+        print(f"       可选：{'、'.join(hints)}")
     return result
 
 
@@ -125,6 +168,7 @@ if __name__ == "__main__":
     ap.add_argument("--voice", default="zh-CN-XiaoxiaoNeural", help="edge-tts 音色")
     ap.add_argument("--no-prefilter", action="store_true", help="不做预过滤，原样喂给 Kimi")
     ap.add_argument("--media", action="store_true", help="额外生成小硅口播视频（屏幕脸 + 声波驱动，本地免费）")
+    ap.add_argument("--images", action="store_true", help="额外用 SiliconFlow 生成日报封面图（需配 SILICONFLOW_API_KEY）")
     ap.add_argument("--avatar", default=None, help="形象图路径（默认 pipeline/avatar.png）")
     ap.add_argument("--max-redo", type=int, default=2, help="质检不达标的最大重做次数（自检闭环）")
     ap.add_argument("--publish", action="store_true", help="生成后写入 Supabase（需配 SUPABASE_*）")
@@ -141,6 +185,7 @@ if __name__ == "__main__":
     if not txt:
         ap.error("要么传 txt 路径，要么加 --crawl")
     result = run(txt, voice=args.voice, use_prefilter=not args.no_prefilter,
-                 media=args.media, avatar=args.avatar, max_redo=args.max_redo)
+                 media=args.media, images=args.images,
+                 avatar=args.avatar, max_redo=args.max_redo)
     if args.publish:
         _publish(result)

@@ -40,14 +40,25 @@ def _upsert(table: str, row: dict) -> None:
 
 
 def publish(date: str, digest: str, script: str,
-            title: str = "", audio_url: str | None = None, video_url: str | None = None) -> None:
+            title: str = "",
+            audio_url: str | None = None,
+            video_url: str | None = None,
+            cover_url: str | None = None,
+            article_count: int = 0,
+            channel_count: int = 0) -> None:
     title = title or f"硅谷速递 · {date}"
     _upsert("daily_summaries", {
         "date": date, "title": title, "content": digest,
+        "article_count": article_count, "channel_count": channel_count,
     })
     _upsert("daily_broadcasts", {
-        "date": date, "title": title, "description": digest[:200],
-        "script": script, "audio_url": audio_url, "video_url": video_url,
+        "date": date, "title": title,
+        "description": digest[:300],   # 文稿摘要（前300字）
+        "script": script,
+        "audio_url":    audio_url,
+        "video_url":    video_url,
+        "cover_url":    cover_url,
+        "poster_image": "/xiaogui.png",  # 小硅静态封面，固定
     })
     print(f"[Supabase] {date} 已写入 daily_summaries + daily_broadcasts")
 

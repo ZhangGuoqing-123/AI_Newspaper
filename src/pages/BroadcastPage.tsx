@@ -2,6 +2,7 @@ import { useRef, useState } from 'react';
 import { motion } from 'framer-motion';
 import { Play, Pause, Radio, Volume2 } from 'lucide-react';
 import MobileLayout from '@/components/layout/MobileLayout';
+import { useLatestBroadcast } from '@/hooks/useSupabaseBroadcast';
 import { mockBroadcast } from '@/data/mockData';
 
 const formatTime = (s: number) => {
@@ -13,6 +14,7 @@ const formatTime = (s: number) => {
 
 // 播报页（方案甲）：上方音频、下方数字人视频，同一时刻只播一个（互斥）
 const BroadcastPage = () => {
+  const { data: broadcast = mockBroadcast } = useLatestBroadcast();
   const audioRef = useRef<HTMLAudioElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const [isAudioPlaying, setIsAudioPlaying] = useState(false);
@@ -47,18 +49,19 @@ const BroadcastPage = () => {
         <div className="px-4 pt-4 pb-3 flex items-center gap-2">
           <Radio className="w-6 h-6 text-primary" />
           <h1 className="text-2xl font-bold text-foreground">播报</h1>
-          <span className="text-sm text-muted-foreground ml-auto">{mockBroadcast.date}</span>
+          <span className="text-sm text-muted-foreground ml-auto">{broadcast.date}</span>
         </div>
       </div>
 
       <div className="px-4 pb-8 space-y-5">
         {/* 标题 */}
         <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
-          <h2 className="text-lg font-bold text-foreground">{mockBroadcast.title}</h2>
+          <h2 className="text-lg font-bold text-foreground">{broadcast.title}</h2>
           <p className="text-xs text-muted-foreground mt-1">AI 为你把今日日报读出来 · 可听可看</p>
         </motion.div>
 
         {/* 上方：语音播报 */}
+        {/* audioUrl / videoUrl 优先读 Supabase daily_broadcasts，未配置时回退本地占位 */}
         <motion.div
           className="rounded-2xl p-5 bg-foreground text-background shadow-lg"
           initial={{ opacity: 0, y: 12 }}
@@ -84,7 +87,7 @@ const BroadcastPage = () => {
             </button>
 
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium truncate mb-2">{mockBroadcast.title}</p>
+              <p className="text-sm font-medium truncate mb-2">{broadcast.title}</p>
               <div
                 className="h-1.5 bg-background/20 rounded-full cursor-pointer"
                 onClick={handleSeek}
@@ -100,7 +103,7 @@ const BroadcastPage = () => {
 
           <audio
             ref={audioRef}
-            src={mockBroadcast.audioUrl}
+            src={broadcast.audioUrl}
             preload="metadata"
             onPlay={() => {
               videoRef.current?.pause();
@@ -129,8 +132,8 @@ const BroadcastPage = () => {
           <div className="rounded-2xl overflow-hidden bg-black shadow-lg">
             <video
               ref={videoRef}
-              src={mockBroadcast.videoUrl}
-              poster={mockBroadcast.posterImage}
+              src={broadcast.videoUrl}
+              poster={broadcast.posterImage}
               controls
               playsInline
               className="w-full bg-black"
@@ -149,7 +152,7 @@ const BroadcastPage = () => {
           transition={{ delay: 0.15 }}
         >
           <h3 className="font-semibold text-foreground text-sm mb-2">今日文稿</h3>
-          <p className="text-sm text-foreground/80 leading-relaxed">{mockBroadcast.description}</p>
+          <p className="text-sm text-foreground/80 leading-relaxed">{broadcast.description}</p>
         </motion.div>
 
         {/* 说明 */}

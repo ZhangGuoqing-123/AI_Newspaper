@@ -158,7 +158,16 @@ def run(txt_path: str, voice: str = "zh-CN-XiaoxiaoNeural", use_prefilter: bool 
 
 def _publish(result: dict) -> None:
     from publish import publish
-    publish(result["date"], result["digest"], result["script"], title=f"硅谷速递 · {result['date']}")
+    stats = result.get("stats", {})
+    publish(
+        result["date"], result["digest"], result["script"],
+        title=f"硅谷速递 · {result['date']}",
+        audio_url=result.get("audio"),
+        video_url=result.get("video"),
+        cover_url=result.get("cover"),
+        article_count=stats.get("raw", 0),
+        channel_count=0,   # pipeline 目前按 accounts 抓，暂无频道分组计数
+    )
 
 
 if __name__ == "__main__":

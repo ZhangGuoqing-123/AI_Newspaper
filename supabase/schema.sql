@@ -58,15 +58,16 @@ create table if not exists daily_summaries (
   created_at    timestamptz not null default now()
 );
 
--- 5. daily_broadcasts 每日播报（多模态：口播稿 + 音频 + 数字人视频）★新增
+-- 5. daily_broadcasts 每日播报（多模态：口播稿 + 音频 + 数字人视频 + 封面图）★新增
 create table if not exists daily_broadcasts (
   date         date primary key,
   title        text not null,
   description  text not null default '',
   script       text not null default '',   -- 口播稿
   audio_url    text,                        -- edge-tts 产出
-  video_url    text,                        -- 数字人视频
-  poster_image text,
+  video_url    text,                        -- 小硅口播视频
+  cover_url    text,                        -- SiliconFlow 封面图
+  poster_image text,                        -- 视频封面（默认 /xiaogui.png）
   created_at   timestamptz not null default now()
 );
 

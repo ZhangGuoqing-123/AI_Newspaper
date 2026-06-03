@@ -10,6 +10,7 @@ import MobileLayout from '@/components/layout/MobileLayout';
 import OnboardingModal from '@/components/onboarding/OnboardingModal';
 import DateSelector from '@/components/home/DateSelector';
 import { mockUser } from '@/data/mockData';
+import { useLatestSummary } from '@/hooks/useSupabaseSummary';
 import { useToast } from '@/hooks/use-toast';
 
 const hasPushConfigured = false;
@@ -78,7 +79,9 @@ const NewsItem = ({ title, content, sources }: { title: string; content: string;
 // 日报三步交互流程
 type DigestState = 'prompt' | 'loading' | 'ready' | 'viewing';
 
-const DigestFlow = ({ date }: { date: Date }) => {
+interface DigestMeta { articleCount?: number; channelCount?: number; }
+
+const DigestFlow = ({ date, meta }: { date: Date; meta?: DigestMeta }) => {
   const [state, setState] = useState<DigestState>('prompt');
   const prevDate = useRef(date.toDateString());
 
@@ -92,7 +95,7 @@ const DigestFlow = ({ date }: { date: Date }) => {
   const monthDay = format(date, 'M月d日', { locale: zhCN });
   const mmdd = format(date, 'MM-dd');
 
-  if (state === 'viewing') return <DigestPreview />;
+  if (state === 'viewing') return <DigestPreview meta={meta} />;
 
   return (
     <div className="relative rounded-2xl overflow-hidden border border-blue-100" style={{ background: 'linear-gradient(to bottom, #ffffff 0%, #c8e6fb 100%)' }}>
@@ -177,7 +180,7 @@ const DigestFlow = ({ date }: { date: Date }) => {
             <div className="flex-1 flex flex-col gap-1.5">
               <p className="text-[17px] font-bold text-slate-800 leading-tight">{mmdd} 专属日报</p>
               <p className="text-[12px] text-slate-500 leading-relaxed">
-                已为您整理好来自 7 个频道、46 条信源、63 篇文章的核心，5 分钟即可读完
+                已为您整理好来自 {meta?.channelCount ?? 7} 个频道、{meta?.articleCount ?? 46} 篇内容的核心，5 分钟即可读完
               </p>
               <motion.button
                 onClick={() => setState('viewing')}
@@ -215,7 +218,7 @@ const SectionTrigger = ({ label, preview }: { label: string; preview: string }) 
   </div>
 );
 
-const DigestPreview = () => (
+const DigestPreview = ({ meta }: { meta?: DigestMeta }) => (
   <div className="rounded-2xl overflow-hidden shadow-xl border border-slate-200">
     <div className="bg-[#1456F0] px-4 py-3 flex items-center justify-between">
       <span className="text-white text-sm font-semibold">📅 AI 日报 · 今日</span>
@@ -419,7 +422,7 @@ const DigestPreview = () => (
 
       <div className="border-t border-slate-100 mt-2 py-3">
         <p className="text-[12px] text-slate-400 text-center">
-          根据您订阅的 <span className="font-medium text-slate-600">46</span> 条信源，参考 <span className="font-medium text-slate-600">63</span> 篇文章生成
+          根据您订阅的信源，参考 <span className="font-medium text-slate-600">{meta?.articleCount ?? 63}</span> 篇文章生成
         </p>
       </div>
     </div>
@@ -432,6 +435,7 @@ const HomePage = () => {
   const [selectedDate, setSelectedDate] = useState(new Date());
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { data: latestSummary } = useLatestSummary();
 
   useEffect(() => {
     const seen = localStorage.getItem('hasSeenOnboarding');
@@ -488,8 +492,12 @@ const HomePage = () => {
             <motion.div {...fadeUp(0)} className="mx-4 mt-4 px-4 py-3 rounded-xl bg-emerald-50 border border-emerald-200 flex items-center gap-3">
               <CheckCircle2 className="w-5 h-5 text-emerald-500 shrink-0" />
               <div className="flex-1">
-                <p className="text-sm font-medium text-emerald-800">今日日报已发送</p>
-                <p className="text-xs text-emerald-600 mt-0.5">08:00 · 已推送至你的邮箱</p>
+                <p className="text-sm font-medium text-emerald-800">
+                  {latestSummary?.title ?? '今日日报已发送'}
+                </p>
+                <p className="text-xs text-emerald-600 mt-0.5">
+                  {latestSummary?.date ?? ''} · 08:00 · 已推送至你的邮箱
+                </p>
               </div>
             </motion.div>
           )}
@@ -550,7 +558,7 @@ const HomePage = () => {
               <p className="text-sm font-semibold text-foreground">这是你每天会收到的</p>
               <span className="text-[11px] text-muted-foreground bg-secondary px-2 py-0.5 rounded-full">样例</span>
             </div>
-            <DigestFlow date={selectedDate} />
+            <DigestFlow date={selectedDate} meta={latestSummary} />
           </motion.div>
 
           {/* ── 三步流程 ── */}

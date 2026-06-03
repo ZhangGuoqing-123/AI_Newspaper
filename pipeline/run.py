@@ -34,8 +34,32 @@ from tts import synth                 # noqa: E402
 OUT = Path(__file__).parent / "output"
 
 
+def _self_check(feed, digest: str, max_redo: int) -> dict:
+    """LLM-as-judge 自检-重生成闭环：质检不达标就带着问题反馈重做，最多 max_redo 次。
+
+    这是本项目「够得上 agent 而非 workflow」的关键决策点之一。
+    DeepSeek 未配置时优雅跳过，不阻断主流程。
+    """
+    try:
+        from judge import judge
+        verdict = judge(digest, feed)
+    except Exception as e:  # noqa: BLE001 —— 多为缺 DEEPSEEK_API_KEY
+        print(f"      质检跳过（{e.__class__.__name__}），直接采用初版")
+        return {"_digest": digest, "skipped": True}
+
+    redo = 0
+    while not verdict.get("ok") and redo < max_redo:
+        redo += 1
+        print(f"      质检未过 score={verdict.get('score')}：{verdict.get('issues')}；第 {redo} 次重做")
+        digest = make_digest(feed, feedback=verdict.get("issues"))
+        verdict = judge(digest, feed)
+    print(f"      质检 score={verdict.get('score')}、ok={verdict.get('ok')}、重做 {redo} 次")
+    return {"_digest": digest, "skipped": False, "ok": verdict.get("ok"),
+            "score": verdict.get("score"), "redo": redo, "issues": verdict.get("issues")}
+
+
 def run(txt_path: str, voice: str = "zh-CN-XiaoxiaoNeural", use_prefilter: bool = True,
-        media: bool = False, avatar: str | None = None) -> dict:
+        media: bool = False, avatar: str | None = None, max_redo: int = 2) -> dict:
     date = Path(txt_path).stem
     total = 5 if media else 4
 
@@ -43,8 +67,10 @@ def run(txt_path: str, voice: str = "zh-CN-XiaoxiaoNeural", use_prefilter: bool 
     feed = prefilter(tweets, max_candidates=80) if use_prefilter else tweets
     print(f"[1/{total}] 解析 {len(tweets)} 条" + (f" → 预过滤后 {len(feed)} 条喂给 Kimi" if use_prefilter else ""))
 
-    print(f"[2/{total}] Kimi-k2.5 生成分类日报 ...")
+    print(f"[2/{total}] Kimi-k2.5 生成日报 + DeepSeek 质检自检（最多重做 {max_redo} 次）...")
     digest = make_digest(feed)
+    quality = _self_check(feed, digest, max_redo)
+    digest = quality.pop("_digest")
 
     print(f"[3/{total}] Kimi 改写口播稿 ...")
     script = to_script(digest)
@@ -57,7 +83,7 @@ def run(txt_path: str, voice: str = "zh-CN-XiaoxiaoNeural", use_prefilter: bool 
     (OUT / f"{date}_digest.txt").write_text(digest, encoding="utf-8")
     (OUT / f"{date}_script.txt").write_text(script, encoding="utf-8")
     result = {"date": date, "digest": digest, "script": script, "audio": str(audio),
-              "cover": None, "video": None,
+              "cover": None, "video": None, "quality": quality,
               "stats": {"raw": len(tweets), "fed": len(feed)}}
 
     if media:
@@ -79,6 +105,8 @@ def run(txt_path: str, voice: str = "zh-CN-XiaoxiaoNeural", use_prefilter: bool 
     produced = f"output/{date}_digest.txt（日报）、{date}_script.txt（口播稿）、{audio.name}（音频）"
     if result.get("video"):
         produced += "、小硅口播视频"
+    if not quality.get("skipped"):
+        produced += f"（质检 {quality.get('score')} 分，重做 {quality.get('redo')} 次）"
     print(f"[完成] {produced}")
     if not media:
         print("       想出小硅口播视频：加 --media（用 pipeline/avatar.png 屏幕脸 + 声波驱动，本地免费）")
@@ -98,6 +126,7 @@ if __name__ == "__main__":
     ap.add_argument("--no-prefilter", action="store_true", help="不做预过滤，原样喂给 Kimi")
     ap.add_argument("--media", action="store_true", help="额外生成小硅口播视频（屏幕脸 + 声波驱动，本地免费）")
     ap.add_argument("--avatar", default=None, help="形象图路径（默认 pipeline/avatar.png）")
+    ap.add_argument("--max-redo", type=int, default=2, help="质检不达标的最大重做次数（自检闭环）")
     ap.add_argument("--publish", action="store_true", help="生成后写入 Supabase（需配 SUPABASE_*）")
     args = ap.parse_args()
 
@@ -112,6 +141,6 @@ if __name__ == "__main__":
     if not txt:
         ap.error("要么传 txt 路径，要么加 --crawl")
     result = run(txt, voice=args.voice, use_prefilter=not args.no_prefilter,
-                 media=args.media, avatar=args.avatar)
+                 media=args.media, avatar=args.avatar, max_redo=args.max_redo)
     if args.publish:
         _publish(result)

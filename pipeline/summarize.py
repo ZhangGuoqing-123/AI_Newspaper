@@ -29,9 +29,15 @@ def _format_tweets(tweets: list[Tweet]) -> str:
     return "\n\n".join(lines)
 
 
-def make_digest(tweets: list[Tweet]) -> str:
-    """生成分类中文日报（纯文本，用户的格式）。"""
+def make_digest(tweets: list[Tweet], feedback: list[str] | None = None) -> str:
+    """生成分类中文日报（纯文本，用户的格式）。
+
+    feedback：上一版被质检挑出的问题，重做时带上让模型改正（自检-重生成闭环用）。
+    """
     user = DIGEST_PROMPT + "\n\n以下是今天的内容：\n\n" + _format_tweets(tweets)
+    if feedback:
+        user += ("\n\n上一版日报被质检指出以下问题，请在这一版中改正：\n- "
+                 + "\n- ".join(feedback))
     return chat(kimi(), system="你是硅谷速递的资深中文编辑。", user=user,
                 max_tokens=4000, temperature=0.4)
 

@@ -40,7 +40,7 @@ python run.py "C:\...\tweets_original\2026-04-14.txt"   # 跑一天的日报
 | `parse_tweets.py` | 解析爬取的 txt | ✅ 真实数据验证通过 |
 | `select.py` | 预过滤 + DeepSeek 选题（碰撞①）| ✅ 预过滤已验证；选题需 key |
 | `summarize.py` | Kimi 摘要 + 口播稿 | 需 key |
-| `judge.py` | DeepSeek 质检（自检闭环）| 需 key |
+| `judge.py` | DeepSeek 质检（自检闭环）| ✅ 已接进 `run.py`：不达标带问题反馈重做，最多 `--max-redo` 次（默认 2）；无 key 自动跳过 |
 | `tts.py` | edge-tts 音频 + 故事级缓存（碰撞②）| 免费免 key |
 | `run.py` | 编排主程序（agent 本体）| 需 key；已支持 `--media` 接多模态 |
 | `generate_media.py` | DreamAPI 生图/数字人视频 | ✅ 已接进 `run.py`；⚠️ DreamAPI 的 endpoint/字段仍是 TODO，待对照文档补准 |

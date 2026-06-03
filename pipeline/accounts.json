@@ -1,0 +1,15 @@
+{
+  "_说明": "这是某个用户关注的 Twitter 账号列表。产品里每个用户一份（他订阅了哪些信源就爬哪些）。demo 默认用你原来的 46 个。",
+  "accounts": [
+    "sama", "OpenAI", "AnthropicAI", "GoogleDeepMind", "ylecun",
+    "elonmusk", "levelsio", "tibomaker", "DannyPostma", "damengchen",
+    "IndieHackers", "DrJimFan", "swyx", "yoheinakajima", "emollick",
+    "GaryMarcus", "pmarca", "paulg", "a16z", "bhorowitz",
+    "garrytan", "midjourney", "runwayml", "_javilopen", "Bilawalsidhu",
+    "pika_labs", "Sigravou", "LangChainAI", "Auto_GPT", "naval",
+    "balajis", "TimFerriss", "waitbutwhy", "_akhaliq", "huggingface",
+    "PyTorch", "bchesky", "linear", "shreyas", "perplexity_ai",
+    "TheBrowserCompany", "NotionHQ", "karpathy", "lennyrachitsky",
+    "AravSrinivas", "amasad"
+  ]
+}

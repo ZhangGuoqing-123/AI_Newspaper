@@ -1,12 +1,12 @@
 import { memo, useCallback } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { Home, Compass, Heart, User } from 'lucide-react';
+import { Home, Compass, Radio, User } from 'lucide-react';
 
 const navItems = [
-  { path: '/', label: '首页', icon: Home },
-  { path: '/discover', label: '发现', icon: Compass },
-  { path: '/following', label: '关注', icon: Heart },
-  { path: '/profile', label: '我的', icon: User },
+  { path: '/', label: '首页', icon: Home, matchPaths: ['/'] },
+  { path: '/feed', label: '发现', icon: Compass, matchPaths: ['/feed', '/discover', '/following'] },
+  { path: '/broadcast', label: '播报', icon: Radio, matchPaths: ['/broadcast'] },
+  { path: '/profile', label: '我的', icon: User, matchPaths: ['/profile'] },
 ];
 
 const BottomNav = memo(() => {
@@ -21,7 +21,7 @@ const BottomNav = memo(() => {
     <nav className="fixed bottom-0 left-0 right-0 max-w-[430px] mx-auto bg-card/95 backdrop-blur-lg border-t border-border safe-area-inset-bottom z-50">
       <div className="flex items-center justify-around h-16">
         {navItems.map((item) => {
-          const isActive = location.pathname === item.path;
+          const isActive = item.matchPaths.includes(location.pathname);
           const Icon = item.icon;
 
           return (

@@ -1,4 +1,4 @@
-import { Channel, Article, DailySummary, User, Source } from '@/types';
+import { Channel, Article, DailySummary, DailyBroadcast, User, Source } from '@/types';
 
 export const mockUser: User = {
   uid: 'u_9527',
@@ -684,6 +684,18 @@ export const mockDailySummary: DailySummary = {
   content: 'OpenAI GPT-5 预览版发布引发热议，Sam Altman 暗示 AGI 临近；a16z 大手笔投资 AI 编程赛道；Anthropic Claude 3.5 在多项测试中表现亮眼。',
   articleCount: 12,
   channelCount: 5,
+};
+
+// 每日播报（TTS 音频 + 数字人口播视频）
+// ⚠️ 占位媒体：接入 DreamAPI LipSync 生成后，把 audioUrl / videoUrl 换成真实文件
+//    （建议把生成的文件放进 public/，再用 '/broadcast/2026-06-02.mp4' 这种本地路径引用）
+export const mockBroadcast: DailyBroadcast = {
+  date: mockDailySummary.date,
+  title: '硅谷速递 · 今日播报',
+  description: mockDailySummary.content,
+  audioUrl: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3',
+  videoUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerJoyrides.mp4',
+  posterImage: '/placeholder.svg',
 };
 
 export const getGreeting = (): string => {

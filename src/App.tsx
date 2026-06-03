@@ -4,8 +4,8 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Index from "./pages/Index";
-import DiscoverPage from "./pages/DiscoverPage";
-import FollowingPage from "./pages/FollowingPage";
+import FeedPage from "./pages/FeedPage";
+import BroadcastPage from "./pages/BroadcastPage";
 import ProfilePage from "./pages/ProfilePage";
 import ArticleDetailPage from "./pages/ArticleDetailPage";
 import FavoritesPage from "./pages/FavoritesPage";
@@ -28,8 +28,11 @@ const App = () => (
       <BrowserRouter>
         <Routes>
           <Route path="/" element={<Index />} />
-          <Route path="/discover" element={<DiscoverPage />} />
-          <Route path="/following" element={<FollowingPage />} />
+          <Route path="/feed" element={<FeedPage />} />
+          {/* 兼容旧路径：发现 / 关注 合并后仍可直达对应 Tab */}
+          <Route path="/discover" element={<FeedPage defaultTab="发现" />} />
+          <Route path="/following" element={<FeedPage defaultTab="关注" />} />
+          <Route path="/broadcast" element={<BroadcastPage />} />
           <Route path="/profile" element={<ProfilePage />} />
           <Route path="/article/:id" element={<ArticleDetailPage />} />
           <Route path="/favorites" element={<FavoritesPage />} />

@@ -71,6 +71,16 @@ export interface DailySummary {
   channelCount: number;
 }
 
+// 每日播报：日报的 TTS 音频 + 数字人口播视频
+export interface DailyBroadcast {
+  date: string;
+  title: string;
+  description: string; // 文稿 / 简介
+  audioUrl: string;
+  videoUrl: string;
+  posterImage?: string; // 视频封面
+}
+
 export type PushChannel = 'email' | 'feishu';
 
 export interface User {

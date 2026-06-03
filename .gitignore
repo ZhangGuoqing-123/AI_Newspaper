@@ -22,3 +22,18 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# 密钥与环境变量（绝不提交真实 key）
+.env
+.env.*
+!.env.example
+
+# Python（agent 流水线）
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# 爬来的原始数据 & 生成的媒体（体积大/含隐私，不入库）
+pipeline/data/
+pipeline/output/

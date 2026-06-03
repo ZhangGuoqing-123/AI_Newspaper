@@ -693,9 +693,9 @@ export const mockBroadcast: DailyBroadcast = {
   date: mockDailySummary.date,
   title: '硅谷速递 · 今日播报',
   description: mockDailySummary.content,
-  audioUrl: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3',
-  videoUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerJoyrides.mp4',
-  posterImage: '/placeholder.svg',
+  audioUrl: '/broadcast/xiaogui.mp3',
+  videoUrl: '/broadcast/xiaogui.mp4',
+  posterImage: '/xiaogui.png',
 };
 
 export const getGreeting = (): string => {

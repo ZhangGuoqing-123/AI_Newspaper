@@ -152,9 +152,9 @@ const BroadcastPage = () => {
           <p className="text-sm text-foreground/80 leading-relaxed">{mockBroadcast.description}</p>
         </motion.div>
 
-        {/* 占位提示 */}
+        {/* 说明 */}
         <p className="text-xs text-muted-foreground text-center">
-          当前为占位音视频，接入 DreamAPI LipSync 生成后替换 mockBroadcast 的 URL 即可
+          音频由 edge-tts 合成；视频为小硅「屏幕脸 + 声波驱动」本地生成，零成本、对口型 100% 准
         </p>
       </div>
     </MobileLayout>

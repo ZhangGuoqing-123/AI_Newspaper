@@ -5,22 +5,30 @@
 ## 流程
 
 ```
-解析 txt → 预过滤+DeepSeek选题（碰撞①）→ Kimi摘要+口播稿
-        → DeepSeek质检，不达标自动重做（自检闭环 = agent）
-        → edge-tts 出音频（故事级缓存 = 碰撞②）
-        → [--media]  小硅屏幕脸+声波驱动，本地合成口播视频（零成本）
-        → [--images] SiliconFlow 生成日报封面图（免费额度）
+解析 txt
+  → [本地] 预过滤（去低信噪转发、近似去重、按热度裁到 80 条候选）
+  → [DeepSeek agent ①] 选题：从候选里精选最重要的 N 条，去重话题排序
+  → [Kimi] 摘要生成日报 + 改写口播稿
+  → [DeepSeek agent ②] 质检自检：打分，不达标带问题反馈重做（最多 max_redo 次）
+  → [edge-tts] 出音频（故事级缓存，同脚本不重复合成）
+  → [--media]  小硅屏幕脸+声波驱动，本地合成口播视频（零成本）
+  → [--images] Kimi 提炼封面 prompt → SiliconFlow FLUX 生图
+  → [--publish] 写入 Supabase（日报 + 播报表）
 ```
+
+> **两个 DeepSeek agent 均可在无 key 时优雅跳过**，不阻断日报和音频产出。
 
 ## 模型分工（按任务选最优）
 
-| 任务 | 模型 |
-|---|---|
-| 选题 / 排序 / 质检 | DeepSeek |
-| 摘要 / 口播稿（中文文笔）| Kimi K2.5（实测多模型后选定）|
-| 生封面图 | FLUX.1-schnell（SiliconFlow，有免费额度）|
-| 数字人视频 | 本地代码（屏幕脸+声波驱动，零成本零 API）|
-| 语音合成 | edge-tts（免费免 key）|
+| 任务 | 模型 | 备注 |
+|---|---|---|
+| 选题 agent（碰撞①）| DeepSeek | 从候选挑最重要 N 条，无 key 跳过 |
+| 质检 agent（碰撞②）| DeepSeek | 打分、指出问题、触发重做，无 key 跳过 |
+| 摘要 / 口播稿 | Kimi K2.5 | 实测多模型后选定，中文文笔最佳 |
+| 封面图 prompt | Kimi | 从日报提炼英文 prompt，无 key 本地提取 |
+| 生封面图 | FLUX.1-schnell（SiliconFlow）| 有免费额度，`--images` 触发 |
+| 数字人视频 | 本地代码 | 屏幕脸+声波驱动，零成本零 API，`--media` 触发 |
+| 语音合成 | edge-tts | 免费免 key |
 
 ## 跑起来
 
@@ -44,6 +52,8 @@ python run.py "C:\...\tweets_original\2026-04-14.txt"   # 跑一天的日报
 | `judge.py` | DeepSeek 质检（自检闭环）| ✅ 已接进 `run.py`：不达标带问题反馈重做，最多 `--max-redo` 次（默认 2）；无 key 自动跳过 |
 | `tts.py` | edge-tts 音频 + 故事级缓存（碰撞②）| 免费免 key |
 | `run.py` | 编排主程序（agent 本体）| 需 key；已支持 `--media` 接多模态 |
+| `select.py` | 两段式：本地预过滤 + DeepSeek 选题 agent | ✅ 完整；`prefilter` + `select_stories` 都已接进 `run.py` |
+| `judge.py` | DeepSeek 质检 agent（LLM-as-judge 自检闭环）| ✅ 完整；打分→反馈→重做，无 key 跳过 |
 | `generate_media.py` | SiliconFlow（FLUX.1-schnell）生封面图 | ✅ 完整实现，`--images` 触发；缓存同 prompt 不重复调 |
 | `talking_head.py` | 小硅口播视频（屏幕脸+声波驱动）| ✅ 本地零成本，`--media` 触发 |
 

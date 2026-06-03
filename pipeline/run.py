@@ -60,32 +60,64 @@ def _self_check(feed, digest: str, max_redo: int) -> dict:
             "score": verdict.get("score"), "redo": redo, "issues": verdict.get("issues")}
 
 
+def _story_select(candidates: list, n: int = 8) -> list:
+    """DeepSeek 选题 agent：从候选集里挑最重要的 n 条，无 key 时优雅跳过。
+
+    这是「碰撞①」的 LLM 决策层——prefilter 先按信噪比裁量，
+    select_stories 再按新闻价值精选，两层互补。
+    """
+    try:
+        from select import select_stories
+        result = select_stories(candidates, n=n)
+        stories = result.get("stories", [])
+        if not stories:
+            print("      选题：DeepSeek 未返回有效故事列表，保留全部候选")
+            return candidates
+        valid_idx = {s["tweet_index"] for s in stories if isinstance(s.get("tweet_index"), int)}
+        selected = [t for i, t in enumerate(candidates) if i in valid_idx]
+        return selected if selected else candidates
+    except Exception as e:  # noqa: BLE001
+        print(f"      选题跳过（{e.__class__.__name__}），保留全部候选")
+        return candidates
+
+
 def _cover_prompt_from_digest(digest: str) -> str:
-    """从日报正文里提取第一个有实质内容的行作为封面图 prompt。"""
-    for line in digest.splitlines():
-        line = line.strip()
-        # 跳过空行和纯分隔行
-        if not line or set(line) <= set("-=—·"):
-            continue
-        # 去掉行首 emoji（范围 U+1F300-U+1FAFF）和空格，取前 80 字
-        stripped = line.lstrip()
-        # 简单去掉常见 emoji 前缀
-        while stripped and ord(stripped[0]) > 0x2500:
-            stripped = stripped[1:].lstrip()
-        if len(stripped) > 10:
-            return stripped[:80]
-    return "硅谷 AI 日报封面，科技感蓝紫渐变"
+    """用 Kimi 把日报提炼成英文封面图 prompt（调用 summarize.to_cover_prompt）。
+    Kimi 不可用时回退到简单文本提取。
+    """
+    try:
+        from summarize import to_cover_prompt
+        return to_cover_prompt(digest)
+    except Exception:  # noqa: BLE001
+        # 兜底：取首行有意义文字
+        for line in digest.splitlines():
+            stripped = line.strip().lstrip()
+            while stripped and ord(stripped[0]) > 0x2500:
+                stripped = stripped[1:].lstrip()
+            if len(stripped) > 10:
+                return stripped[:80]
+        return "硅谷 AI 日报封面，科技感蓝紫渐变"
 
 
 def run(txt_path: str, voice: str = "zh-CN-XiaoxiaoNeural", use_prefilter: bool = True,
+        use_select: bool = True, select_n: int = 10,
         media: bool = False, images: bool = False,
         avatar: str | None = None, max_redo: int = 2) -> dict:
     date = Path(txt_path).stem
     total = 4 + (1 if media else 0) + (1 if images else 0)
 
     tweets = parse_file(txt_path)
-    feed = prefilter(tweets, max_candidates=80) if use_prefilter else tweets
-    print(f"[1/{total}] 解析 {len(tweets)} 条" + (f" → 预过滤后 {len(feed)} 条喂给 Kimi" if use_prefilter else ""))
+    candidates = prefilter(tweets, max_candidates=80) if use_prefilter else tweets
+    print(f"[1/{total}] 解析 {len(tweets)} 条" + (f" → 预过滤后候选 {len(candidates)} 条" if use_prefilter else ""))
+
+    # DeepSeek 选题 agent：从候选集挑最重要的 select_n 条（有 key 时生效，无 key 跳过）
+    if use_select:
+        print(f"         DeepSeek 选题 agent：从 {len(candidates)} 候选里精选 {select_n} 条重要新闻 ...")
+        feed = _story_select(candidates, n=select_n)
+        if len(feed) < len(candidates):
+            print(f"         → 精选后 {len(feed)} 条喂给 Kimi")
+    else:
+        feed = candidates
 
     print(f"[2/{total}] Kimi-k2.5 生成日报 + DeepSeek 质检自检（最多重做 {max_redo} 次）...")
     digest = make_digest(feed)
@@ -104,7 +136,7 @@ def run(txt_path: str, voice: str = "zh-CN-XiaoxiaoNeural", use_prefilter: bool 
     (OUT / f"{date}_script.txt").write_text(script, encoding="utf-8")
     result = {"date": date, "digest": digest, "script": script, "audio": str(audio),
               "cover": None, "video": None, "quality": quality,
-              "stats": {"raw": len(tweets), "fed": len(feed)}}
+              "stats": {"raw": len(tweets), "candidates": len(candidates), "fed": len(feed)}}
 
     step = 5
     if media:
@@ -145,7 +177,9 @@ def run(txt_path: str, voice: str = "zh-CN-XiaoxiaoNeural", use_prefilter: bool 
         produced += f"、封面图({Path(result['cover']).name})"
     if not quality.get("skipped"):
         produced += f"（质检 {quality.get('score')} 分，重做 {quality.get('redo')} 次）"
+    stats = result["stats"]
     print(f"[完成] {produced}")
+    print(f"       漏斗：原始 {stats['raw']} → 预过滤 {stats['candidates']} → 选题 {stats['fed']} 条")
     hints = []
     if not media:
         hints.append("--media（小硅口播视频，本地免费）")
@@ -176,6 +210,8 @@ if __name__ == "__main__":
     ap.add_argument("--crawl", action="store_true", help="先按 accounts.json 现爬最近1天再生成")
     ap.add_argument("--voice", default="zh-CN-XiaoxiaoNeural", help="edge-tts 音色")
     ap.add_argument("--no-prefilter", action="store_true", help="不做预过滤，原样喂给 Kimi")
+    ap.add_argument("--no-select", action="store_true", help="跳过 DeepSeek 选题 agent，把全部候选直接喂给 Kimi")
+    ap.add_argument("--select-n", type=int, default=10, help="DeepSeek 选题 agent 精选条数（默认 10）")
     ap.add_argument("--media", action="store_true", help="额外生成小硅口播视频（屏幕脸 + 声波驱动，本地免费）")
     ap.add_argument("--images", action="store_true", help="额外用 SiliconFlow 生成日报封面图（需配 SILICONFLOW_API_KEY）")
     ap.add_argument("--avatar", default=None, help="形象图路径（默认 pipeline/avatar.png）")
@@ -193,7 +229,9 @@ if __name__ == "__main__":
         txt = str(files[-1])  # 用最新一天
     if not txt:
         ap.error("要么传 txt 路径，要么加 --crawl")
-    result = run(txt, voice=args.voice, use_prefilter=not args.no_prefilter,
+    result = run(txt, voice=args.voice,
+                 use_prefilter=not args.no_prefilter,
+                 use_select=not args.no_select, select_n=args.select_n,
                  media=args.media, images=args.images,
                  avatar=args.avatar, max_redo=args.max_redo)
     if args.publish:

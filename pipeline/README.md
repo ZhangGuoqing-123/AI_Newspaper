@@ -47,15 +47,15 @@ python run.py "C:\...\tweets_original\2026-04-14.txt"   # 跑一天的日报
 | 文件 | 作用 | 状态 |
 |---|---|---|
 | `parse_tweets.py` | 解析爬取的 txt | ✅ 真实数据验证通过 |
-| `select.py` | 预过滤 + DeepSeek 选题（碰撞①）| ✅ 预过滤已验证；选题需 key |
+| `topic_select.py`（原 `select.py`，因与标准库 `select` 模块重名导致 httpx 报"Connection error"已改名）| 两段式：本地预过滤 + DeepSeek 选题 agent | ✅ 完整；`prefilter` + `select_stories` 都已接进 `run.py` |
 | `summarize.py` | Kimi 摘要 + 口播稿 | 需 key |
-| `judge.py` | DeepSeek 质检（自检闭环）| ✅ 已接进 `run.py`：不达标带问题反馈重做，最多 `--max-redo` 次（默认 2）；无 key 自动跳过 |
-| `tts.py` | edge-tts 音频 + 故事级缓存（碰撞②）| 免费免 key |
-| `run.py` | 编排主程序（agent 本体）| 需 key；已支持 `--media` 接多模态 |
-| `select.py` | 两段式：本地预过滤 + DeepSeek 选题 agent | ✅ 完整；`prefilter` + `select_stories` 都已接进 `run.py` |
 | `judge.py` | DeepSeek 质检 agent（LLM-as-judge 自检闭环）| ✅ 完整；打分→反馈→重做，无 key 跳过 |
+| `tts.py` | edge-tts 音频 + 故事级缓存（碰撞②）| 免费免 key |
+| `run.py` | 日报生成主程序（agent 本体）| 需 key；已支持 `--media` 接多模态 |
 | `generate_media.py` | SiliconFlow（FLUX.1-schnell）生封面图 | ✅ 完整实现，`--images` 触发；缓存同 prompt 不重复调 |
 | `talking_head.py` | 小硅口播视频（屏幕脸+声波驱动）| ✅ 本地零成本，`--media` 触发 |
+| `chat_agent.py` | **对话式情报助手**（DeepSeek Function Calling + while 循环）| ✅ 已跑通，见下方说明 |
+| `digest_subagent.py` | 日报生成子 agent（封装 `run.py` 整条链路）| 仅独立运行；已从 `chat_agent.py` 工具集摘除 |
 
 > 封面图：`python run.py "某天.txt" --images`（需在 `.env` 配 `SILICONFLOW_API_KEY`）。
 > 口播视频：`python run.py "某天.txt" --media`（纯本地，无 key 要求）。

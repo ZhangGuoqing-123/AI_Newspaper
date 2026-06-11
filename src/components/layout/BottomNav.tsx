@@ -1,11 +1,12 @@
 import { memo, useCallback } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { Home, Compass, Radio, User } from 'lucide-react';
+import { Sparkles, TrendingUp, User } from 'lucide-react';
 
+// 旧版「首页/发现/播报」三个 Tab 已收编：信源变成「我的」里的透明度面板，
+// 播报音频就地播放——保留「研究」(agent 本体)、「榜单」(热度榜) 和「我的」。
 const navItems = [
-  { path: '/', label: '首页', icon: Home, matchPaths: ['/'] },
-  { path: '/feed', label: '发现', icon: Compass, matchPaths: ['/feed', '/discover', '/following'] },
-  { path: '/broadcast', label: '播报', icon: Radio, matchPaths: ['/broadcast'] },
+  { path: '/', label: '聊一聊', icon: Sparkles, matchPaths: ['/', '/feed', '/discover', '/following', '/broadcast'] },
+  { path: '/trends', label: '榜单', icon: TrendingUp, matchPaths: ['/trends'] },
   { path: '/profile', label: '我的', icon: User, matchPaths: ['/profile'] },
 ];
 

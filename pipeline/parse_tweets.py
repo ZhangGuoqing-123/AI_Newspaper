@@ -42,6 +42,7 @@ class Tweet:
     text: str             # 正文
     quoted: str = ""      # 转发/引用的原帖内容（如有）
     date: str = ""        # 来源文件日期
+    tweet_id: str = ""    # 推文 status id（实时爬取时带上，用于深链原文；老 txt 数据无）
 
     @property
     def engagement(self) -> int:

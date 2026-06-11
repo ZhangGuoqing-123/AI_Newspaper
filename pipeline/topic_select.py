@@ -6,7 +6,7 @@
   2) select_stories —— 贵的 LLM 判断：DeepSeek 在候选集上选题、去重话题、排序
 
 用法（只跑预过滤，不花 key）：
-    python select.py "路径/2026-04-14.txt"
+    python topic_select.py "路径/2026-04-14.txt"
 """
 from __future__ import annotations
 

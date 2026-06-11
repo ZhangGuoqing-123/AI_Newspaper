@@ -30,7 +30,7 @@ except Exception:
     pass
 
 from parse_tweets import parse_file   # noqa: E402
-from select import prefilter          # noqa: E402
+from topic_select import prefilter    # noqa: E402
 from summarize import make_digest, to_script, to_bullet_points  # noqa: E402
 from tts import synth                 # noqa: E402
 
@@ -68,7 +68,7 @@ def _story_select(candidates: list, n: int = 8) -> list:
     select_stories 再按新闻价值精选，两层互补。
     """
     try:
-        from select import select_stories
+        from topic_select import select_stories
         result = select_stories(candidates, n=n)
         stories = result.get("stories", [])
         if not stories:

@@ -3,6 +3,9 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
+import ResearchPage from "./pages/ResearchPage";
+import TrendsPage from "./pages/TrendsPage";
+import TopicDetailPage from "./pages/TopicDetailPage";
 import Index from "./pages/Index";
 import FeedPage from "./pages/FeedPage";
 import BroadcastPage from "./pages/BroadcastPage";
@@ -27,9 +30,13 @@ const App = () => (
       <Sonner />
       <BrowserRouter>
         <Routes>
-          <Route path="/" element={<Index />} />
+          {/* 改造为「研究」对话页 = agent 本体，是新的首页/产品中心 */}
+          <Route path="/" element={<ResearchPage />} />
+          <Route path="/trends" element={<TrendsPage />} />
+          <Route path="/topic" element={<TopicDetailPage />} />
+          {/* 旧首页/信息流/播报页保留路由（不进底部导航），便于对照旧版或后续复用其内部组件 */}
+          <Route path="/old-home" element={<Index />} />
           <Route path="/feed" element={<FeedPage />} />
-          {/* 兼容旧路径：发现 / 关注 合并后仍可直达对应 Tab */}
           <Route path="/discover" element={<FeedPage defaultTab="发现" />} />
           <Route path="/following" element={<FeedPage defaultTab="关注" />} />
           <Route path="/broadcast" element={<BroadcastPage />} />

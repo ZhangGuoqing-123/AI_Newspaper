@@ -1,65 +1,83 @@
-import { useState } from 'react';
-import { motion } from 'framer-motion';
-import { ArrowLeft, Link2, Tag, FolderPlus, Check, ChevronDown } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { ArrowLeft, Plus, Trash2, RefreshCw } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import MobileLayout from '@/components/layout/MobileLayout';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { mockChannels } from '@/data/mockData';
+import { Switch } from '@/components/ui/switch';
 import { useToast } from '@/hooks/use-toast';
 
-const platformOptions = [
-  { id: 'twitter', name: 'Twitter / X', icon: '𝕏', placeholder: 'https://x.com/username' },
-  { id: 'blog', name: 'Blog / RSS', icon: '📝', placeholder: 'https://example.com/rss' },
-  { id: 'newsletter', name: 'Newsletter', icon: '📬', placeholder: 'https://substack.com/@author' },
-  { id: 'hackernews', name: 'Hacker News', icon: '🟠', placeholder: 'https://news.ycombinator.com' },
-];
+const API = import.meta.env.VITE_AGENT_API_BASE || 'http://127.0.0.1:8787';
+
+interface Source {
+  screen_name: string;
+  active: boolean;
+  added_at: string;
+}
 
 const AddSourcePage = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
-  
-  const [sourceUrl, setSourceUrl] = useState('');
-  const [sourceName, setSourceName] = useState('');
-  const [selectedPlatform, setSelectedPlatform] = useState<string | null>(null);
-  const [selectedCollection, setSelectedCollection] = useState<string | null>(null);
-  const [showCollectionPicker, setShowCollectionPicker] = useState(false);
 
-  const collections = mockChannels.filter(ch => ch.isSubscribed);
+  const [sources, setSources] = useState<Source[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [input, setInput] = useState('');
+  const [adding, setAdding] = useState(false);
 
-  const handleSubmit = () => {
-    if (!sourceUrl.trim() || !sourceName.trim()) {
-      toast({
-        title: "请填写完整信息",
-        description: "信息源名称和链接地址不能为空",
-        variant: "destructive",
-      });
-      return;
+  const load = async () => {
+    setLoading(true);
+    try {
+      const r = await fetch(`${API}/sources`);
+      setSources(await r.json());
+    } catch {
+      toast({ title: '加载失败', description: '后端未启动？', variant: 'destructive' });
+    } finally {
+      setLoading(false);
     }
-
-    // URL 验证
-    const urlPattern = /^(https?:\/\/|[\u4e00-\u9fa5])/;
-    if (!urlPattern.test(sourceUrl.trim())) {
-      toast({
-        title: "链接格式不正确",
-        description: "请输入有效的链接地址",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    toast({
-      title: "提交成功",
-      description: "已添加至审核队列，通过后将自动同步内容",
-    });
-    navigate(-1);
   };
 
-  const selectedCollectionData = collections.find(c => c.id === selectedCollection);
+  useEffect(() => { load(); }, []);
+
+  const handleAdd = async () => {
+    const name = input.trim().replace(/^@/, '');
+    if (!name) return;
+    setAdding(true);
+    try {
+      const r = await fetch(`${API}/sources`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ screen_name: name }),
+      });
+      if (!r.ok) {
+        const err = await r.json();
+        throw new Error(err.detail || '添加失败');
+      }
+      setInput('');
+      await load();
+      toast({ title: `@${name} 已添加`, description: '下次自动巡检时开始抓取' });
+    } catch (e: any) {
+      toast({ title: '添加失败', description: e.message, variant: 'destructive' });
+    } finally {
+      setAdding(false);
+    }
+  };
+
+  const handleToggle = async (screen_name: string, active: boolean) => {
+    setSources(s => s.map(x => x.screen_name === screen_name ? { ...x, active } : x));
+    await fetch(`${API}/sources/${screen_name}?active=${active}`, { method: 'PATCH' });
+  };
+
+  const handleDelete = async (screen_name: string) => {
+    setSources(s => s.filter(x => x.screen_name !== screen_name));
+    await fetch(`${API}/sources/${screen_name}`, { method: 'DELETE' });
+    toast({ title: `@${screen_name} 已移除` });
+  };
+
+  const activeCount = sources.filter(s => s.active).length;
 
   return (
     <MobileLayout showNav={false}>
-      {/* 顶部导航 */}
       <div className="sticky top-0 z-10 bg-background/95 backdrop-blur-md border-b border-border">
         <div className="flex items-center gap-3 px-4 py-3">
           <motion.button
@@ -69,174 +87,78 @@ const AddSourcePage = () => {
           >
             <ArrowLeft className="w-5 h-5 text-foreground" />
           </motion.button>
-          <h1 className="text-lg font-bold text-foreground">添加信息源</h1>
+          <div className="flex-1">
+            <h1 className="text-lg font-bold text-foreground">情报来源</h1>
+            <p className="text-xs text-muted-foreground">
+              {loading ? '加载中...' : `${activeCount} 个账号追踪中 · 共 ${sources.length} 个`}
+            </p>
+          </div>
+          <motion.button onClick={load} whileTap={{ scale: 0.9 }} disabled={loading}>
+            <RefreshCw className={`w-5 h-5 text-muted-foreground ${loading ? 'animate-spin' : ''}`} />
+          </motion.button>
         </div>
       </div>
 
-      <div className="px-4 py-6 space-y-6">
-        {/* 平台选择 */}
-        <div>
-          <label className="text-sm font-medium text-foreground flex items-center gap-2 mb-3">
-            <Tag className="w-4 h-4 text-primary" />
-            选择平台类型
-          </label>
-          <div className="grid grid-cols-2 gap-2">
-            {platformOptions.map((platform) => (
-              <motion.button
-                key={platform.id}
-                onClick={() => setSelectedPlatform(platform.id)}
-                className={`flex items-center gap-2 p-3 rounded-xl border-2 transition-all ${
-                  selectedPlatform === platform.id
-                    ? 'border-primary bg-primary/5'
-                    : 'border-border bg-card'
-                }`}
-                whileTap={{ scale: 0.98 }}
-              >
-                <span className="text-xl">{platform.icon}</span>
-                <span className={`text-sm font-medium flex-1 text-left ${
-                  selectedPlatform === platform.id ? 'text-primary' : 'text-foreground'
-                }`}>
-                  {platform.name}
-                </span>
-                {selectedPlatform === platform.id && (
-                  <Check className="w-4 h-4 text-primary" />
-                )}
-              </motion.button>
+      <div className="px-4 py-4 space-y-4">
+        {/* 添加输入框 */}
+        <div className="flex gap-2">
+          <div className="relative flex-1">
+            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">@</span>
+            <Input
+              className="pl-7 h-11"
+              placeholder="twitter handle，如 karpathy"
+              value={input}
+              onChange={e => setInput(e.target.value)}
+              onKeyDown={e => e.key === 'Enter' && handleAdd()}
+            />
+          </div>
+          <Button className="h-11 px-4" onClick={handleAdd} disabled={adding || !input.trim()}>
+            {adding ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
+          </Button>
+        </div>
+
+        {/* 信源列表 */}
+        {loading ? (
+          <div className="space-y-3">
+            {Array.from({ length: 6 }).map((_, i) => (
+              <div key={i} className="h-14 rounded-xl bg-secondary animate-pulse" />
             ))}
           </div>
-        </div>
-
-        {/* 链接输入 */}
-        <div>
-          <label className="text-sm font-medium text-foreground flex items-center gap-2 mb-3">
-            <Link2 className="w-4 h-4 text-primary" />
-            链接地址
-          </label>
-          <Input
-            placeholder={
-              selectedPlatform 
-                ? platformOptions.find(p => p.id === selectedPlatform)?.placeholder 
-                : "输入信息源链接..."
-            }
-            value={sourceUrl}
-            onChange={(e) => setSourceUrl(e.target.value)}
-            className="h-12"
-            maxLength={500}
-          />
-          <p className="text-xs text-muted-foreground mt-2">
-            支持 Twitter 主页、Blog/RSS 地址、Substack Newsletter、Hacker News
-          </p>
-        </div>
-
-        {/* 名称输入 */}
-        <div>
-          <label className="text-sm font-medium text-foreground mb-3 block">
-            信息源名称
-          </label>
-          <Input
-            placeholder="给这个信息源起个名字..."
-            value={sourceName}
-            onChange={(e) => setSourceName(e.target.value)}
-            className="h-12"
-            maxLength={50}
-          />
-        </div>
-
-        {/* 加入集合 */}
-        <div>
-          <label className="text-sm font-medium text-foreground flex items-center gap-2 mb-3">
-            <FolderPlus className="w-4 h-4 text-primary" />
-            加入信息集合（可选）
-          </label>
-          
-          <motion.button
-            onClick={() => setShowCollectionPicker(!showCollectionPicker)}
-            className="w-full flex items-center justify-between p-3 rounded-xl border border-border bg-card"
-            whileTap={{ scale: 0.98 }}
-          >
-            {selectedCollectionData ? (
-              <div className="flex items-center gap-2">
-                <span className="text-xl">{selectedCollectionData.icon}</span>
-                <span className="font-medium text-foreground">{selectedCollectionData.name}</span>
-              </div>
-            ) : (
-              <span className="text-muted-foreground">选择一个集合...</span>
-            )}
-            <ChevronDown className={`w-5 h-5 text-muted-foreground transition-transform ${
-              showCollectionPicker ? 'rotate-180' : ''
-            }`} />
-          </motion.button>
-
-          {/* 集合列表 */}
-          {showCollectionPicker && (
-            <motion.div
-              className="mt-2 rounded-xl border border-border bg-card overflow-hidden"
-              initial={{ opacity: 0, height: 0 }}
-              animate={{ opacity: 1, height: 'auto' }}
-            >
-              {/* 不加入任何集合选项 */}
-              <button
-                onClick={() => {
-                  setSelectedCollection(null);
-                  setShowCollectionPicker(false);
-                }}
-                className={`w-full flex items-center gap-3 p-3 border-b border-border hover:bg-secondary/50 transition-colors ${
-                  !selectedCollection ? 'bg-primary/5' : ''
-                }`}
+        ) : (
+          <AnimatePresence>
+            {sources.map(src => (
+              <motion.div
+                key={src.screen_name}
+                layout
+                initial={{ opacity: 0, y: -8 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, x: 20 }}
+                className="flex items-center gap-3 px-4 py-3 rounded-xl bg-card border border-border"
               >
-                <div className="w-8 h-8 rounded-lg bg-secondary flex items-center justify-center">
-                  <span className="text-muted-foreground">—</span>
+                <div className="w-9 h-9 rounded-full bg-secondary flex items-center justify-center text-sm font-bold text-muted-foreground flex-shrink-0">
+                  {src.screen_name[0].toUpperCase()}
                 </div>
-                <span className="text-sm text-muted-foreground">不加入任何集合</span>
-                {!selectedCollection && <Check className="w-4 h-4 text-primary ml-auto" />}
-              </button>
-
-              {collections.map((collection) => (
-                <button
-                  key={collection.id}
-                  onClick={() => {
-                    setSelectedCollection(collection.id);
-                    setShowCollectionPicker(false);
-                  }}
-                  className={`w-full flex items-center gap-3 p-3 border-b border-border last:border-b-0 hover:bg-secondary/50 transition-colors ${
-                    selectedCollection === collection.id ? 'bg-primary/5' : ''
-                  }`}
+                <div className="flex-1 min-w-0">
+                  <p className="font-medium text-foreground truncate">@{src.screen_name}</p>
+                  <p className="text-xs text-muted-foreground">
+                    {src.active ? '追踪中' : '已暂停'}
+                  </p>
+                </div>
+                <Switch
+                  checked={src.active}
+                  onCheckedChange={v => handleToggle(src.screen_name, v)}
+                />
+                <motion.button
+                  whileTap={{ scale: 0.9 }}
+                  onClick={() => handleDelete(src.screen_name)}
+                  className="w-8 h-8 rounded-full flex items-center justify-center text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
                 >
-                  <div className="w-8 h-8 rounded-lg bg-secondary flex items-center justify-center text-lg">
-                    {collection.icon}
-                  </div>
-                  <div className="flex-1 text-left">
-                    <p className="text-sm font-medium text-foreground">{collection.name}</p>
-                    <p className="text-xs text-muted-foreground">{collection.sources?.length || 0} 个信息源</p>
-                  </div>
-                  {selectedCollection === collection.id && (
-                    <Check className="w-4 h-4 text-primary" />
-                  )}
-                </button>
-              ))}
-
-              {collections.length === 0 && (
-                <div className="p-4 text-center text-sm text-muted-foreground">
-                  暂无已关注的集合
-                </div>
-              )}
-            </motion.div>
-          )}
-        </div>
-
-        {/* 提交按钮 */}
-        <div className="pt-4">
-          <Button 
-            onClick={handleSubmit}
-            className="w-full h-12 text-base font-medium"
-            disabled={!sourceUrl.trim() || !sourceName.trim()}
-          >
-            提交审核
-          </Button>
-          <p className="text-xs text-muted-foreground text-center mt-3">
-            提交后需人工审核，通过后会自动开始同步内容
-          </p>
-        </div>
+                  <Trash2 className="w-4 h-4" />
+                </motion.button>
+              </motion.div>
+            ))}
+          </AnimatePresence>
+        )}
       </div>
     </MobileLayout>
   );

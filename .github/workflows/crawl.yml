@@ -1,0 +1,57 @@
+# 定时爬取：每 6 小时在 GitHub 的云端跑一轮爬取 + 重算热门话题。
+#
+# 为什么用这个：你本地后端只在电脑开机、进程常驻时才会触发 APScheduler，
+# 电脑一关/睡眠就漏过 0/6/12/18 那几个点 —— 数据就停在几天前。
+# GitHub Actions 跑在 GitHub 的服务器上，不用你开电脑，免费额度对这点用量绰绰有余。
+# 整条爬取管线都是 API 调用（TikHub 爬 + SiliconFlow 算 embedding + DeepSeek/千问起标题 + 写 Supabase），
+# 没有本地模型依赖，所以一个普通 Ubuntu runner 就能跑。
+#
+# === 启用前要做的（一次性）===
+# 1. 把代码推到你的 GitHub 仓库（私有库即可，Actions 私有库每月 2000 分钟免费，足够）。
+# 2. 仓库 Settings → Secrets and variables → Actions → New repository secret，加这几个：
+#       TIKHUB_API_KEY、SILICONFLOW_API_KEY、DEEPSEEK_API_KEY、QWEN_API_KEY、SUPABASE_SERVICE_KEY
+#    （值就照 pipeline/.env 里现有的填；.env 本身不会被推上去，已被 .gitignore 忽略。）
+# 3. 进 Actions 页签，手动点一次 "Run workflow" 验证能跑通，之后就自动每 6 小时跑。
+
+name: 定时爬取与话题重算
+
+on:
+  schedule:
+    # GitHub cron 用 UTC。每 6 小时一轮（UTC 0/6/12/18 ≈ 北京时间 8/14/20/2 点）。
+    # 具体几点不重要，每轮回看 7 小时、留 1h 重叠防漏即可。
+    - cron: "0 */6 * * *"
+  workflow_dispatch:        # 允许在 Actions 页面手动触发（方便首跑验证 / 补爬）
+    inputs:
+      hours:
+        description: "回看小时数（长时间没跑要补缺口时调大，如 50）"
+        required: false
+        default: "7"
+
+jobs:
+  crawl:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      # —— 密钥（从仓库 Secrets 注入，绝不写明文）——
+      TIKHUB_API_KEY: ${{ secrets.TIKHUB_API_KEY }}
+      SILICONFLOW_API_KEY: ${{ secrets.SILICONFLOW_API_KEY }}
+      DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY }}
+      QWEN_API_KEY: ${{ secrets.QWEN_API_KEY }}
+      SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+      # —— 非密钥配置（明文即可，和 .env 保持一致）——
+      SUPABASE_URL: https://wjlxpsianyxvgkppgtaj.supabase.co
+      TIKHUB_BASE_URL: https://api.tikhub.io
+      DEEPSEEK_BASE_URL: https://api.deepseek.com
+      DEEPSEEK_MODEL: deepseek-chat
+      QWEN_BASE_URL: https://dashscope.aliyuncs.com/compatible-mode/v1
+      QWEN_MODEL: qwen3-max
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: 安装依赖
+        run: pip install -r pipeline/requirements.txt
+      - name: 爬取 + 重算话题
+        working-directory: pipeline
+        run: python cron_crawl.py --hours ${{ github.event.inputs.hours || '7' }}

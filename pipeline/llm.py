@@ -32,9 +32,25 @@ def kimi():
     return _client("KIMI_API_KEY", "KIMI_BASE_URL"), os.getenv("KIMI_MODEL", "kimi-k2-0711-preview")
 
 
+def qwen():
+    """千问：中文标题/文案表达更佳，用于话题起名（阿里云百炼 DashScope，OpenAI 兼容接口）。
+
+    需要 pipeline/.env 配 QWEN_API_KEY；base_url / model 可用 QWEN_BASE_URL / QWEN_MODEL 覆盖。
+    """
+    from openai import OpenAI
+    key = os.getenv("QWEN_API_KEY")
+    if not key:
+        raise RuntimeError("缺少 QWEN_API_KEY，请在 pipeline/.env 配置（阿里云百炼控制台获取）")
+    base = os.getenv("QWEN_BASE_URL", "https://dashscope.aliyuncs.com/compatible-mode/v1")
+    return OpenAI(api_key=key, base_url=base), os.getenv("QWEN_MODEL", "qwen3.6-max-preview")
+
+
 def chat(client_model, system: str, user: str, json_mode: bool = False,
          max_tokens: int = 2000, temperature: float = 0.3) -> str:
     client, model = client_model
+    if model.startswith("kimi-k2"):
+        # k2.x 系列是新一代推理风格模型，服务端只接受 temperature=1，传别的值会被 400 拒绝
+        temperature = 1
     kwargs = dict(
         model=model,
         messages=[{"role": "system", "content": system},
@@ -46,6 +62,37 @@ def chat(client_model, system: str, user: str, json_mode: bool = False,
         kwargs["response_format"] = {"type": "json_object"}
     resp = client.chat.completions.create(**kwargs)
     return resp.choices[0].message.content
+
+
+def chat_stream(client_model, system: str, user: str,
+                max_tokens: int = 2000, temperature: float = 0.3):
+    """流式版 chat：逐段 yield (kind, delta)，kind ∈ {"reasoning", "content"}。
+
+    k2.5 等推理风格模型会先吐一长串思维链（reasoning_content，可能耗时数十秒），
+    思考完才吐正文（content）。分开标注让前端把"思考中"做成可见的实时反馈，
+    避免用户盯着静止的 loading 干等。普通非推理模型只会产生 content。
+    """
+    client, model = client_model
+    if model.startswith("kimi-k2"):
+        # 同 chat()：k2.x 服务端只接受 temperature=1
+        temperature = 1
+    stream = client.chat.completions.create(
+        model=model,
+        messages=[{"role": "system", "content": system},
+                  {"role": "user", "content": user}],
+        max_tokens=max_tokens,
+        temperature=temperature,
+        stream=True,
+    )
+    for chunk in stream:
+        if not chunk.choices:
+            continue
+        delta = chunk.choices[0].delta
+        reasoning = getattr(delta, "reasoning_content", None)
+        if reasoning:
+            yield ("reasoning", reasoning)
+        if delta.content:
+            yield ("content", delta.content)
 
 
 def chat_json(client_model, system: str, user: str, **kw) -> dict:

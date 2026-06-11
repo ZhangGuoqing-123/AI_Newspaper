@@ -37,3 +37,8 @@ venv/
 # 爬来的原始数据 & 生成的媒体（体积大/含隐私，不入库）
 pipeline/data/
 pipeline/output/
+
+# 废弃的本地 Chroma 向量库（已迁移到 Supabase pgvector）
+pipeline/chroma_db/
+# 测评生成的报告
+pipeline/eval_report_*.md

@@ -12,6 +12,7 @@
 from __future__ import annotations
 
 import os
+import re
 from datetime import datetime, timedelta
 
 from dotenv import load_dotenv
@@ -50,6 +51,33 @@ def _row(t) -> dict:
     }
 
 
+def _upsert_tweets(rows: list[dict]):
+    """写入 tweets 表，对「列不存在」容错。
+
+    背景：_row() 会带上 tweet_id（深链原文用），但该列要等 add_tweet_id.sql 在 Supabase
+    跑过才有。列不存在时 PostgREST 会报 PGRST204 "Could not find the 'X' column"，
+    整批写入失败——这正是之前每轮爬取都「绿勾但零入库」、数据停在几天前的真凶。
+    这里捕获该错误、把缺失的列从所有行里剔掉再重试，让爬取在列没建好时也能正常写库
+    （代价仅是 tweet_id 暂时为空，前端深链自动回退到搜索兜底，不影响数据更新）。
+    """
+    sb = _supabase()
+    rows = [dict(r) for r in rows]
+    for _ in range(5):  # 最多剥 5 个缺失列，避免极端情况下死循环
+        try:
+            return sb.table("tweets").upsert(rows, on_conflict="account,time,text_hash").execute()
+        except Exception as e:
+            m = re.search(r"Could not find the '(\w+)' column", str(e))
+            if not m:
+                raise
+            col = m.group(1)
+            print(f"[auto_crawl] tweets 表缺少 '{col}' 列，自动去掉该字段重试"
+                  f"（如需该字段请在 Supabase 跑对应迁移 SQL）")
+            for r in rows:
+                r.pop(col, None)
+    # 兜底：剥了 5 轮还不行，最后再试一次让真实异常抛出
+    return sb.table("tweets").upsert(rows, on_conflict="account,time,text_hash").execute()
+
+
 def run_auto_crawl_once(lookback_hours: int = 7) -> None:
     """巡检一轮：对每个活跃信源抓最近 lookback_hours 小时的新内容，写库 + 算 embedding + 并入内存索引。
 
@@ -80,7 +108,7 @@ def run_auto_crawl_once(lookback_hours: int = 7) -> None:
         return
 
     try:
-        result = _supabase().table("tweets").upsert(fresh_rows, on_conflict="account,time,text_hash").execute()
+        result = _upsert_tweets(fresh_rows)
         rows_with_ids = result.data or []
     except Exception as e:
         print(f"[auto_crawl] 写入 Supabase 出错（本轮抓到的内容暂未入库，下一轮会重试）: {e}")

@@ -13,9 +13,12 @@ import queue
 import threading
 import uuid
 
+from pathlib import Path
+
 from fastapi import FastAPI, Header
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import StreamingResponse
+from fastapi.responses import StreamingResponse, FileResponse
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
 from fastapi import HTTPException
@@ -218,6 +221,25 @@ def chat_stream(req: ChatRequest, x_user_id: str | None = Header(default=None)):
                 break
 
     return StreamingResponse(gen(), media_type="text/event-stream")
+
+
+# ── 托管打包后的前端（单端口 = 单隧道，前端走同源相对路径调 API）─────────────────
+# 必须放在所有 API 路由「之后」：FastAPI 按定义顺序匹配，API 路由先命中，
+# 其余路径交给下面的 SPA 兜底返回 index.html（支持 /trends /topic 这些前端路由）。
+_DIST = Path(__file__).parent.parent / "dist"
+if (_DIST / "index.html").exists():
+    _assets = _DIST / "assets"
+    if _assets.is_dir():
+        app.mount("/assets", StaticFiles(directory=str(_assets)), name="assets")
+
+    @app.get("/{full_path:path}")
+    def _spa(full_path: str):
+        f = _DIST / full_path
+        if full_path and f.is_file():
+            return FileResponse(str(f))
+        return FileResponse(str(_DIST / "index.html"))
+else:
+    print("[server] 未找到 dist/，前端未托管——先在项目根跑 `npm run build`")
 
 
 if __name__ == "__main__":

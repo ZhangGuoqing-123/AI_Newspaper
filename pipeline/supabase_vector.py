@@ -50,6 +50,21 @@ def _siliconflow():
     return _sf
 
 
+def build_embed_text(text: str, quoted: str = "") -> str:
+    """构造送去 embedding 的文本：正文 + 引用/被转发的原文。
+
+    为什么要拼 quoted：引用推文/回复的 text 只是表层短评论（如「Worthwhile exercise」），
+    真正的语义在被引用的原文里。只 embed text 会让这类空壳推在向量空间里变成无信息噪音，
+    聚类聚不准、语义检索也召回不到。把 quoted 一起喂进去，向量才能反映它真正在聊什么。
+    各截断后拼接，避免单条过长（bge-m3 能吃 8k token，但控长省算力也更聚焦）。
+    """
+    text = (text or "").strip()[:500]
+    quoted = (quoted or "").strip()[:300]
+    if quoted:
+        return f"{text}\n（引用原文：{quoted}）"
+    return text
+
+
 def get_embeddings(texts: list[str]) -> list[list[float]]:
     """批量调 SiliconFlow BAAI/bge-m3 计算 embedding。
 
@@ -138,7 +153,7 @@ def upsert_embeddings_for_rows(rows: list[dict]) -> None:
     """
     if not rows:
         return
-    texts = [r["text"][:500] for r in rows]
+    texts = [build_embed_text(r.get("text", ""), r.get("quoted", "")) for r in rows]
     embeddings = get_embeddings(texts)
     records = [{"id": r["id"], "embedding": emb} for r, emb in zip(rows, embeddings)]
     for i in range(0, len(records), INSERT_BATCH):
@@ -336,7 +351,7 @@ def build_index_from_siliconflow() -> None:
     existing_ids = _sb_get_ids("tweet_embeddings")
     print(f"[pgvector] tweet_embeddings 实际 {len(existing_ids)} 条，拉取待 embed 推文...")
 
-    all_tweets = _sb_get_rows("tweets", "id,text")
+    all_tweets = _sb_get_rows("tweets", "id,text,quoted")
     pending = [r for r in all_tweets if r["id"] not in existing_ids]
 
     if not pending:
